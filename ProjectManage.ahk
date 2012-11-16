@@ -59,17 +59,9 @@ if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd")
 	Record.dateEntered	:= A_Now
 	db.Insert(Record, "projects")
 	
-	; Insert skills:
+	
 	NewProjectID := LastProjectID()
-	Loop, parse, ProjectSkillsEdit, CSV
-	{
-		SkillToInsert = %A_LoopField%	;This removes any leading space due to parse
-		SkillToInsert := Capitalize(SkillToInsert)
-		SkillsInsert := {}
-		SkillsInsert.skill := SkillToInsert
-		SkillsInsert.projectID := NewProjectID
-		db.Insert(SkillsInsert, "skills")	; Insert new skill to skills table
-	}
+	SkillsIDSetting := NewProjectID
 	
 	if (Action = "QuickDone" || Action = "QuickAdd")
 	{
@@ -83,11 +75,21 @@ if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd")
 }
 else if (Action = "Edit")
 {
+	; Update project name:
 	db.Query("UPDATE projects SET project = '" SafeQuote(ProjectNameEdit) "' WHERE ID = " SelectedProjectID )
+	; Update confidence level:
 	db.Query("UPDATE projects SET confidence = '" KeyGet(ConfidenceList, ProjectConfidenceEdit) "' WHERE ID = " SelectedProjectID )
-	; Make sure skill is title cased, just to look good:
-	StringUpper, ProjectSkillEdit, ProjectSkillEdit, T	
-	db.Query("UPDATE projects SET skill = '" SafeQuote(ProjectSkillEdit) "' WHERE ID = " SelectedProjectID )
+	SkillsIDSetting := SelectedProjectID
+}
+; Insert skills:
+Loop, parse, ProjectSkillsEdit, CSV
+{
+	SkillToInsert = %A_LoopField%	;This removes any leading space due to parse
+	SkillToInsert := Capitalize(SkillToInsert)
+	SkillsInsert := {}
+	SkillsInsert.skill := SkillToInsert
+	SkillsInsert.projectID := SkillsIDSetting
+	db.Insert(SkillsInsert, "skills")	; Insert new skill to skills table
 }
 if (Action = "Add" || Action = "Edit")
 {
@@ -115,6 +117,9 @@ else if (Action = "QuickAdd" || Action = "QuickDone")
 	Gui, 1:Default
 }
 return
+
+; Functions for Project Management: =============================================================
+
 
 LastProjectID()
 {
@@ -166,10 +171,22 @@ ProjectManage(Action)
 			{
 				ProjectName 			:= ProjectInfo["project"]
 				ProjectConfidence		:= ProjectInfo["confidence"]
-				ProjectSkill 			:= ProjectInfo["skill"]
 				ProjectInfo.MoveNext()
 			}
 			ProjectInfo.Close()
+			
+			ProjectSkill =
+			CommaAdd =
+			SkillsStringBuild := db.OpenRecordSet("SELECT * FROM skills WHERE projectID = " . SelectedProjectID )
+			while (!SkillsStringBuild.EOF)
+			{
+				if (A_Index > 1)
+					CommaAdd := ", "
+				ProjectSkill .= CommaAdd . SkillsStringBuild["skill"] 
+				SkillsStringBuild.MoveNext()
+			}
+			SkillsStringBuild.Close()
+			
 		}
 	}
 	else if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd")
@@ -202,7 +219,7 @@ ProjectManage(Action)
 	;SkillsDB := ListSkills(ProjectSkill)
 	;Gui, ProjectManager:Add, ComboBox, vProjectSkillEdit gSkillAutoComplete w130 r7, % SkillsDB ;% ListSkills(ProjectSkill) 
 	
-	Gui, ProjectManager:Add, Edit, vProjectSkillsEdit w130, 
+	Gui, ProjectManager:Add, Edit, vProjectSkillsEdit w130, % ProjectSkill
 	
 	; Submit button:
 	Gui, ProjectManager:Add, Button, Default gProjectManagerSubmit w80 x15 y+70, &Submit

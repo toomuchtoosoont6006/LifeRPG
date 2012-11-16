@@ -229,8 +229,12 @@ UpdateList(NextSelection="", ConfidenceSelected="All", Skill="All")
 	{
 		Filter := "SELECT p.* FROM projects p, skills s WHERE s.projectID = p.ID AND (s.skill IN ('" . Skill . "')) "
 	}
+	else if (Skill = "None")
+	{
+		Filter := "SELECT * FROM projects WHERE ID NOT IN (SELECT projectID FROM skills) "
+	}
 	; Completion state:
-	if (Skill <> "None" && Skill <> "All")
+	if (Skill <> "None" && Skill <> "All" || Skill = "None")
 		Filter .= "AND "
 	else
 		Filter .= "WHERE "
