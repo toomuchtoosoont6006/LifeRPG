@@ -27,7 +27,7 @@ Gui, AddSubproject:Add, Text, , Subproject Name:
 Gui, AddSubproject:Add, Edit, vProjectName W270,
 
 Gui, AddSubproject:Add, Text, section, &Difficulty:
-Gui, AddSubproject:Add, DropDownList, vProjectDifficulty, % ListDifficulties("Really Easy")
+Gui, AddSubproject:Add, DropDownList, vProjectDifficulty, ;% ListDifficulties("Really Easy")
 
 Gui, AddSubproject:Add, Text, ys, Set S&kill:
 SPSkills := ListSkills()

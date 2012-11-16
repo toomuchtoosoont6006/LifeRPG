@@ -1,22 +1,22 @@
 ;~ Autoload and initial settings loading section:============================================
 
-;~ "Character" class, disabled for now b/c have to make HUD progress bar automatically fit:
-;CharacterClass := "Artist"
-
 ;~ Set icon for window corner:
 IconFile := "res/WP_RPG_VG.ico"
 if FileExist(IconFile)
 	Menu, Tray, Icon, %IconFile%
 Menu, Tray, NoStandard
 
-;~ Project difficulties:
-Difficulties := ["Really Easy", "Pretty Easy", "Medium", "Hard"]
+;~ Project confidence levels:
+ConfidenceList := ["High", "Medium", "Low"]
+
+; For DB conversion:
+Difficulties := ["Really Easy", "Pretty Easy", "Medium", "Hard"] 
 
 ; Award points for each difficulty:
 Awards := [5, 10, 25, 100]
 
 ; Difficulty colors:
-Colors := [BGR("ADFF2F"), BGR("87CEFA"), BGR("FFD700"), BGR("FF6347")]
+Colors := [BGR("ADFF2F"), BGR("FFD700"), BGR("FF6347")]
 
 ;~ Priorities:
 Priorities := ["Must", "Should", "Could", "Want"]
@@ -66,6 +66,8 @@ if (!FileExist(ConnectionString))	; User must have deleted or moved last used db
 }
 else	; we can go ahead and load the last used db:
 	db := DBA.DataBaseFactory.OpenDataBase("SQLite", ConnectionString)
+
+db.Query("VACUUM")
 
 ; Hotkey do not activate list:
 GroupAdd, exclude, New projects database

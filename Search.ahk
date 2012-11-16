@@ -10,10 +10,10 @@
 FilterUpdate:
 ImportanceUpdate:
 FilterSkillUpdate:
-GuiControlGet, FilterImportanceSelected, 1:, ImportanceChoose
+GuiControlGet, FilterConfidenceSelected, 1:, ConfidenceChoose
 GuiControlGet, FilterSkillSelected, 1:, FilterSkill
 GuiControlGet, FilterShowDone, 1:, FilterShowDone
-UpdateList(Selection,FilterImportanceSelected,FilterSkillSelected)
+UpdateList(Selection,FilterConfidenceSelected,FilterSkillSelected)
 return
 
 ;~ ===============================================================================
@@ -38,8 +38,8 @@ return
 Search:
 Critical
 GuiControlGet, SearchString, , SearchQuery
-GuiControlGet, FilterImportanceSelected, , ImportanceChoose
+GuiControlGet, FilterConfidenceSelected, , ConfidenceChoose
 GuiControlGet, FilterSkillSelected, , FilterSkill
 GuiControlGet, FilterShowDone, 
-UpdateList(Selection, FilterImportanceSelected, FilterSkillSelected)
+UpdateList(Selection, FilterConfidenceSelected, FilterSkillSelected)
 return

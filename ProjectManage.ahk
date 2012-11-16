@@ -28,13 +28,15 @@ return
 SkillAutoComplete:
 Critical
 Gui, ProjectManager:Submit, NoHide
-If (!GetKeyState("BackSpace","P") && ProjectSkillEdit && Pos := InStr(SkillsDB, "|" . ProjectSkillEdit))
-{
-	Found := SubStr(SkillsDB, pos+1, InStr(SkillsDB, "|", 1, Pos + 1) - Pos - 1)
-	GuiControl, ProjectManager:Text, ProjectSkillEdit, %Found%
-	SendInput % "{End}" . "+{Left " . StrLen(Found) - StrLen(ProjectSkillEdit) . "}"
-}
+;~ If (!GetKeyState("BackSpace","P") && ProjectSkillEdit && Pos := InStr(SkillsDB, "|" . ProjectSkillEdit))
+;~ {
+	;~ Found := SubStr(SkillsDB, pos+1, InStr(SkillsDB, "|", 1, Pos + 1) - Pos - 1)
+	;~ GuiControl, ProjectManager:Text, ProjectSkillEdit, %Found%
+	;~ SendInput % "{End}" . "+{Left " . StrLen(Found) - StrLen(ProjectSkillEdit) . "}"
+;~ }
+ToolTip, X%A_CaretX% Y%A_CaretY%, A_CaretX, A_CaretY - 20
 return
+
 
 ProjectManagerSubmit:
 Gui, ProjectManager:Submit, NoHide
@@ -43,7 +45,8 @@ if (ProjectNameEdit = "")
 	MsgBox, 8192, Error, Can't make a project with no name!
 	return
 }
-if (ProjectSkillEdit = "All" || ProjectSkillEdit = "None")
+
+if (ProjectSkillEdit = "All" || ProjectSkillEdit = "None")	; Sort this out during parse of skills
 {
 	MsgBox, 8192, Error, "All" and "None" can't be used as skill names!
 	return
@@ -52,40 +55,40 @@ if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd")
 {
 	Record 				:= {}
 	Record.Project 		:= ProjectNameEdit
-	Record.Difficulty 	:= ProjectDifficultyEdit
-	Record.Importance 	:= ProjectImportanceEdit
-	Record.Skill 			:= Capitalize(ProjectSkillEdit)
+	Record.Confidence 	:= KeyGet(ConfidenceList, ProjectConfidenceEdit)
 	Record.dateEntered	:= A_Now
-	S := db.Insert(Record, "projects")
+	db.Insert(Record, "projects")
+	
+	; Insert skills:
+	NewProjectID := LastProjectID()
+	Loop, parse, ProjectSkillsEdit, CSV
+	{
+		SkillToInsert = %A_LoopField%	;This removes any leading space due to parse
+		SkillToInsert := Capitalize(SkillToInsert)
+		SkillsInsert := {}
+		SkillsInsert.skill := SkillToInsert
+		SkillsInsert.projectID := NewProjectID
+		db.Insert(SkillsInsert, "skills")	; Insert new skill to skills table
+	}
+	
 	if (Action = "QuickDone" || Action = "QuickAdd")
 	{
 		Gui, ProjectManager:Cancel
 		Gui, 1:Default
 		if (Action = "QuickDone")
 		{
-			table := db.Query("SELECT MAX(id) FROM projects")
-			columnCount := table.Columns.Count()
-			for each, row in table.Rows
-		   {
-				Loop, % columnCount
-					QuickID := row[A_index]
-		   }
-			CompleteProject(QuickID)
+			CompleteProject(LastProjectID())
 		}
 	}
 }
 else if (Action = "Edit")
 {
 	db.Query("UPDATE projects SET project = '" SafeQuote(ProjectNameEdit) "' WHERE ID = " SelectedProjectID )
-	db.Query("UPDATE projects SET difficulty = '" SafeQuote(ProjectDifficultyEdit) "' WHERE ID = " SelectedProjectID )
-	db.Query("UPDATE projects SET importance = '" SafeQuote(ProjectImportanceEdit) "' WHERE ID = " SelectedProjectID )
+	db.Query("UPDATE projects SET confidence = '" KeyGet(ConfidenceList, ProjectConfidenceEdit) "' WHERE ID = " SelectedProjectID )
 	; Make sure skill is title cased, just to look good:
 	StringUpper, ProjectSkillEdit, ProjectSkillEdit, T	
 	db.Query("UPDATE projects SET skill = '" SafeQuote(ProjectSkillEdit) "' WHERE ID = " SelectedProjectID )
 }
-;UpdateList(Selection, FilterImportanceSelected, FilterSkillSelected)
-;Notification(Selection . FilterImportanceSelected . FilterSkillSelected, "")
-;GuiControlGet, FilterSkillSelected, , FilterSkill
 if (Action = "Add" || Action = "Edit")
 {
 	GuiChildClose("ProjectManager")
@@ -113,14 +116,37 @@ else if (Action = "QuickAdd" || Action = "QuickDone")
 }
 return
 
+LastProjectID()
+{
+	global db
+	table := db.Query("SELECT MAX(id) FROM projects")
+	columnCount := table.Columns.Count()
+	for each, row in table.Rows
+   {
+		Loop, % columnCount
+			QuickID := row[A_index]
+   }
+   return QuickID
+}
+
+DBGetVal(Query, Val)
+{
+	global db
+   R := db.OpenRecordSet(Query)
+   while (!R.EOF)
+	{
+		V := R[Val]
+		R.MoveNext()
+	}
+	R.Close()
+	return V
+}
 
 ProjectManage(Action)	
 {
-	;global db, ProjectNameEdit, ProjectDifficultyEdit, ProjectImportanceEdit, ProjectSkillEdit
 	global
 	ProjectNameEdit =
-	ProjectDifficultyEdit =
-	ProjectImportanceEdit =
+	ProjectConfidenceEdit =
 	ProjectSkillEdit =
 	; Get the row number of the selected project from the main project ListView:
 	Selection := LV_GetNext("","F")
@@ -139,8 +165,7 @@ ProjectManage(Action)
 			while(!ProjectInfo.EOF)
 			{
 				ProjectName 			:= ProjectInfo["project"]
-				ProjectDifficulty 	:= ProjectInfo["difficulty"]
-				ProjectImportance 	:= ProjectInfo["importance"]
+				ProjectConfidence		:= ProjectInfo["confidence"]
 				ProjectSkill 			:= ProjectInfo["skill"]
 				ProjectInfo.MoveNext()
 			}
@@ -150,8 +175,7 @@ ProjectManage(Action)
 	else if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd")
 	{
 		ProjectName =
-		ProjectDifficulty =
-		ProjectImportance =
+		ProjectConfidence =
 		ProjectSkill =
 	}
 	; Build the GUI window to either add or edit a project:
@@ -168,24 +192,17 @@ ProjectManage(Action)
 	Gui, ProjectManager:Add, Text, , &Project Name:
 	Gui, ProjectManager:Add, Edit, vProjectNameEdit W270 r1, %ProjectName%
 	
-	; Difficulty:
-	Gui, ProjectManager:Add, Text, , &Difficulty:
-	DifficultyList := ListDifficulties(ProjectDifficulty)
-	Gui, ProjectManager:Add, DropDownList, vProjectDifficultyEdit, %DifficultyList%
-	
-	; Importance:
-	if (Action <> "QuickDone")
-	{
-		Gui, ProjectManager:Add, Text, , &Importance:
-		PriorityList := ListPriorities(ProjectImportance)
-		Gui, ProjectManager:Add, DropDownList, vProjectImportanceEdit, %PriorityList%
-	}
+	; Confidence:
+	Gui, ProjectManager:Add, Text, , &Confidence:
+	Gui, ProjectManager:Add, DropDownList, vProjectConfidenceEdit, % ListConfidence(ProjectConfidence)
 	
 	; Skill:
-	Gui, ProjectManager:Add, Text, x+20 y52, Set S&kill:
+	Gui, ProjectManager:Add, Text, x+20 y52, Set S&kills:
 	; To set this, we need to go through all the skills on the table and get all the distinct skills:
-	SkillsDB := ListSkills(ProjectSkill)
-	Gui, ProjectManager:Add, ComboBox, vProjectSkillEdit gSkillAutoComplete w130 r7, % SkillsDB ;% ListSkills(ProjectSkill) 	;Diplomacy|Art|Piracy|Cleaning|Hunting
+	;SkillsDB := ListSkills(ProjectSkill)
+	;Gui, ProjectManager:Add, ComboBox, vProjectSkillEdit gSkillAutoComplete w130 r7, % SkillsDB ;% ListSkills(ProjectSkill) 
+	
+	Gui, ProjectManager:Add, Edit, vProjectSkillsEdit w130, 
 	
 	; Submit button:
 	Gui, ProjectManager:Add, Button, Default gProjectManagerSubmit w80 x15 y+70, &Submit
@@ -211,5 +228,3 @@ ProjectManage(Action)
 	Gui, ProjectManager:Show, w%Width% h%Height% x%xc% y%yc%, %PMTitle% Project
 	return
 }
-
-; Kind of duplicate with other skills get function I just made

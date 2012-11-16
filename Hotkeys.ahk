@@ -46,3 +46,22 @@ return
 ;~ else 
 	;~ WinActivate, %WindowFind%
 ;~ return
+
+^1::
+^2::
+^3::
+Selection := LV_GetNext("","F")
+LV_GetText(SelectedProjectID, Selection, IDCol)
+If (SelectedProjectID == "ID")
+{
+	return
+}
+else
+{	
+	StringTrimLeft, NewConfidence, A_ThisHotkey, 1
+	db.Query("UPDATE projects SET confidence = " NewConfidence " WHERE id = " SelectedProjectID )
+	gosub FilterUpdate
+	;UpdateList(Selection, FilterImportanceSelected, FilterSkillSelected)
+	return
+}
+return

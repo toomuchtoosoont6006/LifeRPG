@@ -16,15 +16,16 @@ SVy := CenterY(SVh)
 ;    First we need to add all skills to the LV
 ; SELECT DISTINCT skill FROM projects WHERE difficulty <> 'Done' ORDER BY skill
 ; 2. Add to ListView
+
 SkillsList := db.OpenRecordSet("SELECT DISTINCT skill FROM projects WHERE skill IS NOT NULL AND skill <> '' ORDER BY skill")
 while (!SkillsList.EOF)
 {
 	SkillListName := SkillsList["skill"]
 	LV_Add("", SkillListName)
 	RowNum := A_Index
-	Table := db.Query("SELECT COUNT(skill) FROM projects WHERE skill = '" . SkillListName . "' AND difficulty = 'Done'")
-	columnCount := table.Columns.Count()
-	for each, row in table.Rows
+	Table := db.Query("SELECT COUNT(skill) FROM projects WHERE skill = '" . SkillListName . "' AND confidence is null")
+	columnCount := Table.Columns.Count()
+	for each, row in Table.Rows
    {
 		Loop, % columnCount
 		;msgbox % row[A_index]
@@ -33,7 +34,6 @@ while (!SkillsList.EOF)
 	SkillsList.MoveNext()
 }
 SkillsList.Close()
-;LV_ModifyCol()
 LV_ModifyCol(ColSkillLevel, "AutoHDR integer sortdesc")
 Loop % LV_GetCount("Col")
 {

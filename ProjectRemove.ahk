@@ -3,7 +3,7 @@
 
 RemoveProject:
 Selection := LV_GetNext("","F")
-LV_GetText(SelectedProjectID, Selection, 1)
+LV_GetText(SelectedProjectID, Selection, IDCol)
 If (SelectedProjectID == "ID")
 {
 	return
@@ -18,10 +18,8 @@ else
 	db.Query("DELETE FROM projects WHERE id = " SelectedProjectID )
 	GuiChildClose("RemoveProject")
 	RefreshSkillsList(FilterSkillSelected)
-	;Notification("RefreshSkillList(",FilterSkillSelected)
 	gosub FilterUpdate
-	;Notification(Selection . ", " . FilterImportanceSelected . ", " . FilterSkillSelected,"")
-	UpdateList(Selection, FilterImportanceSelected, FilterSkillSelected)
+	;UpdateList(Selection, FilterConfidenceSelected, FilterSkillSelected)
 	return
 	
 	RemoveProjectNo:
