@@ -79,6 +79,8 @@ else if (Action = "Edit")
 	db.Query("UPDATE projects SET project = '" SafeQuote(ProjectNameEdit) "' WHERE ID = " SelectedProjectID )
 	; Update confidence level:
 	db.Query("UPDATE projects SET confidence = '" KeyGet(ConfidenceList, ProjectConfidenceEdit) "' WHERE ID = " SelectedProjectID )
+	; Wipe the existing skills tied to this project:
+	db.Query("DELETE FROM skills WHERE projectID = " . SelectedProjectID)
 	SkillsIDSetting := SelectedProjectID
 }
 ; Insert skills:
@@ -219,7 +221,7 @@ ProjectManage(Action)
 	;SkillsDB := ListSkills(ProjectSkill)
 	;Gui, ProjectManager:Add, ComboBox, vProjectSkillEdit gSkillAutoComplete w130 r7, % SkillsDB ;% ListSkills(ProjectSkill) 
 	
-	Gui, ProjectManager:Add, Edit, vProjectSkillsEdit w130, % ProjectSkill
+	Gui, ProjectManager:Add, Edit, vProjectSkillsEdit w130 r1, % ProjectSkill
 	
 	; Submit button:
 	Gui, ProjectManager:Add, Button, Default gProjectManagerSubmit w80 x15 y+70, &Submit
