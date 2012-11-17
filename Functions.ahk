@@ -111,10 +111,14 @@ Uppercase(String)
 	return String
 }
 
-Capitalize(String)
+Capitalize(W)
 {
-	StringUpper, String, String, T
-	return String
+	;StringUpper, String, String, T
+	;return String
+	Initial := SubStr(W, 1, 1)
+	StringUpper, Initial, Initial
+	StringTrimLeft, W, W, 1
+	return Initial . W
 }
 
 SafeQuote(string)		; Escape single quotes for sql update. Insert doesn't seem to need it because the DB library handles it.

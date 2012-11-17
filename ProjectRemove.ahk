@@ -16,6 +16,7 @@ else
 	RemoveProjectYes:
 	Gui, RemoveProject:Submit, NoHide
 	db.Query("DELETE FROM projects WHERE id = " SelectedProjectID )
+	db.Query("DELETE FROM skills WHERE projectID = " . SelectedProjectID)
 	GuiChildClose("RemoveProject")
 	RefreshSkillsList(FilterSkillSelected)
 	gosub FilterUpdate
