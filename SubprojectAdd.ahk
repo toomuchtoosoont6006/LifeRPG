@@ -34,7 +34,7 @@ SPSkills := ListSkills()
 Gui, AddSubproject:Add, ComboBox, vProjectSkill gSPSkillAutoComplete w130 r7, % SPSkills
 
 Gui, AddSubproject:Add, Text, xm, Impo&rtance:
-Gui, AddSubproject:Add, DropDownList, vProjectImportance, % ListPriorities("Must")
+Gui, AddSubproject:Add, DropDownList, vProjectImportance, % ListImportance("Must")
 
 Gui, AddSubproject:Add, Button, Default gAddSubprojectSubmit w80 xm y+20, &Submit
 

@@ -23,9 +23,9 @@ Gui, Add, Button, gClearSearch vClearSearchButton x+1, &Clear	; Pressing Alt+C a
 
 
 ;~ Filter view by importance:
-Gui, Add, Text, x+10 vConfidenceChooseText, &Confidence: 
-Gui, Add, DropDownList, vConfidenceChoose gFilterUpdate x+5 w60, All||	; Filtering subroutines are located in Search.ahk
-GuiControl, , ConfidenceChoose, % ListConfidence("All")
+Gui, Add, Text, x+10 vDifficultyChooseText, &Difficulty: 
+Gui, Add, DropDownList, vDifficultyChoose gFilterUpdate x+5 w60, All||	; Filtering subroutines are located in Search.ahk
+GuiControl, , DifficultyChoose, % ListDifficulty("All")
 
 ; Filter view by skill:
 Gui, Add, Text, x+10 vSkillChooseText, S&kill:
@@ -37,9 +37,9 @@ Gui, Add, Checkbox, vFilterShowDone gFilterUpdate x+10, Show do&ne
 
 
 ;~ ListView:
-Gui, Add, ListView, x0 y+15 r20 Grid AltSubmit -Multi Count%CountUp% vMainList hwndColored_LV_1, ID|ConfidenceID|ParentID|ColorID|Confidence|Project|Parent
+Gui, Add, ListView, x0 y+15 r20 Grid AltSubmit -Multi Count%CountUp% vMainList hwndColored_LV_1, ID|DifficultyID|ImportanceID|ParentID|ColorID|Difficulty|Project|Importance|Parent
 }
-Colored_LV_1_BG = 4 ;ColorIDCol
+Colored_LV_1_BG = 5 ;ColorIDCol
 GuiControl, Focus, SearchQuery	; Focus on search bar by default
 Gui, Show, w827 h600, %AppTitle%	; Show the GUI we've created
 UpdateList()	; Show all projects
@@ -65,8 +65,8 @@ else if (A_GuiWidth <= 811)
 }
 GuiControl, MoveDraw, SearchQuery, % "w" SearchBarWidth
 GuiControl, MoveDraw, ClearSearchButton, % "x" 50 + SearchBarWidth + 10
-GuiControl, MoveDraw, ConfidenceChooseText, % "x" 50 + SearchBarWidth + 55 
-GuiControl, MoveDraw, ConfidenceChoose, % "x" 50 + SearchBarWidth + 120 
+GuiControl, MoveDraw, DifficultyChooseText, % "x" 50 + SearchBarWidth + 55 
+GuiControl, MoveDraw, DifficultyChoose, % "x" 50 + SearchBarWidth + 120 
 GuiControl, MoveDraw, SkillChooseText, % "x" 50 + SearchBarWidth + 190
 GuiControl, MoveDraw, FilterSkill, % "x" 50 + SearchBarWidth + 220
 GuiControl, MoveDraw, FilterShowDone, % "x" 50 + SearchBarWidth + 350
@@ -136,18 +136,18 @@ ListSkills(Selected="")
 	return SkillComboList
 }
 
-ListConfidence(SetConfidence="")
+ListDifficulty(SetDifficulty="")
 {
-	global ConfidenceList
-	For k, v in ConfidenceList
+	global DifficultyLevels
+	For k, v in DifficultyLevels
 	{
-		if (k = SetConfidence)
+		if (k = SetDifficulty)
 			v := v . "|"
-		else if (k = 1 && SetConfidence <> "All")
+		else if (k = 1 && SetDifficulty <> "All")
 			v := v . "|"
-		ConfidenceFormatted .= v . "|"
+		DifficultyFormatted .= v . "|"
 	}
-	return ConfidenceFormatted
+	return DifficultyFormatted
 }
 
 KeyGet(obj, val)
@@ -159,39 +159,43 @@ KeyGet(obj, val)
 	}
 }
 
-ListPriorities(SetPriority="")
+ListImportance(SetImportance="")
 {
-	global Priorities
-	For k, imp in Priorities
+	global ImportanceLevels
+	For k, v in ImportanceLevels
 	{
-		if (imp = SetPriority)
-			imp := imp . "|"
-		else if (k = 1 && SetPriority <> "All")
-			imp := imp . "|"
-		PriorityList .= imp . "|"
+		if (k = SetImportance)
+			v := v . "|"
+		else if (k = 1 && SetImportance <> "All")
+			v := v . "|"
+		ImportanceFormatted .= v . "|"
 	}
-	return PriorityList
+	return ImportanceFormatted
 }
 
-UpdateList(NextSelection="", ConfidenceSelected="All", Skill="All")
+UpdateList(NextSelection="", DifficultySelected="All", Skill="All")
 {
 	global
-	; A number from the database:
+	; The ID of the project - A number from the database:
 	IDCol = 1	
-	; A number from the database:
-	ConfIDCol = 2	
-	; Number from the database:
-	ParentIDCol = 3		
+	; The difficulty level - A number from the database:
+	DiffIDCol = 2	
+	; The importance level - A number from the database:
+	ImpIDCol = 3
+	; The ID number of the parent - A Number from the database:
+	ParentIDCol = 4		
 	
-	; A number added from confidence rank info:
-	ColorIDCol = 4			
+	; The color for the project - A number added from Difficulty rank info:
+	ColorIDCol = 5			
 	
-	; Text to be deciphered from rank code:
-	ConfidenceCol = 5		
-	; Text from the database:
-	ProjNameCol 	= 6		
-	; Text to be deciphered from database number:
-	ParentCol = 7			
+	; Readable difficulty text - Text to be deciphered from rank code:
+	DifficultyCol = 6		
+	; Name of the project - Text from the database:
+	ProjNameCol 	= 7	
+	; Importance of the project - Text to be deciphered from rank number:
+	ImportanceCol = 8
+	; Name of parent project - Text to be deciphered from database number:
+	ParentCol = 9			
 		
 	
 	Critical
@@ -199,26 +203,6 @@ UpdateList(NextSelection="", ConfidenceSelected="All", Skill="All")
 	GuiControlGet, SearchString, , SearchQuery
 	GuiControl, -ReDraw, MainList
 	LV_Delete()
-	;~ if (Skill = "All") 
-	;~ {
-		;~ Filter := "Select * from projects "
-	;~ }
-	;~ else if (Skill <> "All" && Skill <> "None")
-	;~ {
-		;~ Filter := "SELECT p.* FROM projects p, skills s WHERE s.projectID = p.ID AND (s.skill IN ('" . Skill . "')) "
-	;~ }
-	;~ else if (Skill = "None")
-		;~ filter .= ""
-	;~ if (ConfidenceSelected <> "" || FilterShowDone <> "" || Skill <> "" || SearchString <> "")
-		;~ Filter .= "WHERE "
-	;~ if (SearchString <> "")
-		;~ Filter .= "project LIKE '%" SafeQuote(SearchString) "%' AND"
-	;~ if (FilterShowDone <> 1)
-		;~ Filter .= " confidence is not null "	; change this to 0 eventually
-	;~ else if (FilterShowDone = 1)
-		;~ Filter .= " confidence = 0 OR confidence is null"
-	;~ if (ConfidenceSelected && ConfidenceSelected <> "All")
-		;~ Filter .= " AND confidence = " KeyGet(ConfidenceList, ConfidenceSelected) " "
 	
 	; Skills:
 	if (Skill = "All")
@@ -239,34 +223,35 @@ UpdateList(NextSelection="", ConfidenceSelected="All", Skill="All")
 	else
 		Filter .= "WHERE "
 	if (FilterShowDone = 1)
-		Filter .= "confidence = 0 or confidence is null "
+		Filter .= "Difficulty = 0 or Difficulty is null "
 	else 
-		Filter .= "confidence is not null "
+		Filter .= "Difficulty is not null "
 	
-	; Confidence level
-	if (ConfidenceSelected <> "All")
-		Filter .= "AND confidence = " . KeyGet(ConfidenceList, ConfidenceSelected) . " "
+	; Difficulty level
+	if (DifficultySelected <> "All")
+		Filter .= "AND Difficulty = " . KeyGet(DifficultyLevels, DifficultySelected) . " "
 	
 	; Search string:
 	if (SearchString <> "")
 		Filter .= "AND project LIKE '%" . SafeQuote(SearchString) "%'"
 		
-	;Notification(ConfidenceSelected, Filter)
+	;Notification(DifficultySelected, Filter)
 	
 	Projects := db.OpenRecordSet(Filter)
 	while (!Projects.EOF)
 	{
 		ID := Projects["id"]
-		Confidence := Projects["confidence"]
+		Difficulty := Projects["Difficulty"]
 		Project := Projects["project"]
+		Importance := Projects["importance"]
 		Parent := Projects["parent"]
-		LV_Add("", ID, Confidence, Parent,"","", Project,"" )	; This where database info is added to main ListView
+		LV_Add("", ID, Difficulty,Importance,Parent,"","", Project,"","" )	; This where database info is added to main ListView
 		Projects.MoveNext()
 	}
 	Projects.Close()
 	GuiControl, -ReDraw, MainList
 	LV_ModifyCol(IDCol, "Integer sortdesc")	; Enable this to sort by ID, which could show most recent or oldest first, depending.
-	LV_ModifyCol(ConfIDCol, "sort")
+	LV_ModifyCol(DiffIDCol, "sort")
 	
 	If (NextSelection)
 		LV_Modify(NextSelection, "Focus Select Vis")
@@ -288,19 +273,33 @@ UpdateList(NextSelection="", ConfidenceSelected="All", Skill="All")
 		GetParent.Close()
 		LV_Modify(ThisLine, "Col" . ParentCol,ParentName)
 		
-		; Display confidence level names and set color codes:
-		for k, v in ConfidenceList
+		; Display Difficulty level names and set color codes:
+		for k, v in DifficultyLevels
 		{
-			LV_GetText(ConfidenceCode, ThisLine, ConfIDCol)
-			if (k = ConfidenceCode)
+			LV_GetText(DifficultyCode, ThisLine, DiffIDCol)
+			if (k = DifficultyCode)
 			{
-				LV_Modify(ThisLine, "Col" . ConfidenceCol, v)
+				LV_Modify(ThisLine, "Col" . DifficultyCol, v)
 				LV_Modify(ThisLine, "Col" . ColorIDCol, Colors[k])
 			}
-			else if (ConfidenceCode = "" || ConfidenceCode = 0)
+			else if (DifficultyCode = "" || DifficultyCode = 0)
 			{
-				LV_Modify(ThisLine, "Col" . ConfidenceCol, "Done")
+				LV_Modify(ThisLine, "Col" . DifficultyCol, "Done")
 				LV_Modify(ThisLine, "Col" . ColorIDCol, BGR("F5FFFA"))
+			}
+		}
+		
+		; Display Importance level names:
+		for k, v in ImportanceLevels
+		{
+			LV_GetText(ImportanceCode, ThisLine, ImpIDCol)
+			if (k = ImportanceCode)
+			{
+				LV_Modify(ThisLine, "Col" . ImportanceCol, v)
+			}
+			else if (ImportanceCode = "" || ImportanceCode = 0)
+			{
+				LV_Modify(ThisLine, "Col" . ImportanceCol, "None")
 			}
 		}
 		
@@ -323,9 +322,10 @@ UpdateList(NextSelection="", ConfidenceSelected="All", Skill="All")
 	Loop % MainColCount
 		LV_ModifyCol(A_Index,"AutoHdr")
 	LV_ModifyCol(IDCol, 0)	; Hide ID column
-	LV_ModifyCol(ColorIDCol, 0)	; Hide Color column
-	LV_ModifyCol(ConfIDCol, 0)	; etc.
-	LV_ModifyCol(ParentIDCol, 0)
+	LV_ModifyCol(ColorIDCol, 0)	; Hide color code column
+	LV_ModifyCol(DiffIDCol, 0)	; Hide difficulty code col
+	LV_ModifyCol(ImpIDCol, 0)	; Hide importance code col
+	LV_ModifyCol(ParentIDCol, 0)	; Hide parent ID col
 	
 	; Enable ListView coloring:
 	OnMessage( WM_NOTIFY := 0x4E, "WM_NOTIFY" )

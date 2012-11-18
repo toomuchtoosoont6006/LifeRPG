@@ -10,10 +10,10 @@
 FilterUpdate:
 ImportanceUpdate:
 FilterSkillUpdate:
-GuiControlGet, FilterConfidenceSelected, 1:, ConfidenceChoose
+GuiControlGet, FilterDifficultySelected, 1:, DifficultyChoose
 GuiControlGet, FilterSkillSelected, 1:, FilterSkill
 GuiControlGet, FilterShowDone, 1:, FilterShowDone
-UpdateList(Selection,FilterConfidenceSelected,FilterSkillSelected)
+UpdateList(Selection,FilterDifficultySelected,FilterSkillSelected)
 return
 
 ;~ ===============================================================================
@@ -22,7 +22,7 @@ return
 ClearSearch:
 Critical
 GuiControl, , ImportanceChoose, |All||
-GuiControl, , ImportanceChoose, % ListPriorities()
+GuiControl, , ImportanceChoose, % ListImportance()
 
 GuiControl, , FilterSkill, |All||None|	; Put | at start to reset out the DDL
 GuiControl, , FilterSkill, % ListSkills()
@@ -38,8 +38,8 @@ return
 Search:
 Critical
 GuiControlGet, SearchString, , SearchQuery
-GuiControlGet, FilterConfidenceSelected, , ConfidenceChoose
+GuiControlGet, FilterDifficultySelected, , DifficultyChoose
 GuiControlGet, FilterSkillSelected, , FilterSkill
 GuiControlGet, FilterShowDone, 
-UpdateList(Selection, FilterConfidenceSelected, FilterSkillSelected)
+UpdateList(Selection, FilterDifficultySelected, FilterSkillSelected)
 return

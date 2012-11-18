@@ -7,19 +7,19 @@ if FileExist(IconFile)
 Menu, Tray, NoStandard
 
 ;~ Project confidence levels:
-ConfidenceList := ["High", "Medium", "Low"]
+ConfidenceLevels := ["High", "Medium", "Low"]
 
 ; For DB conversion:
-Difficulties := ["Really Easy", "Pretty Easy", "Medium", "Hard"] 
+DifficultyLevels := ["Easy", "Medium", "Hard"] 
 
 ; Award points for each difficulty:
-Awards := [5, 10, 25, 100]
+AwardLevels := [5, 10, 25]
 
 ; Difficulty colors:
 Colors := [BGR("ADFF2F"), BGR("FFD700"), BGR("FF6347")]
 
 ;~ Priorities:
-Priorities := ["Must", "Should", "Could", "Want"]
+ImportanceLevels := ["High", "Medium", "Low"]
 
 BGR(RGB)
 {
