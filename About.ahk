@@ -16,7 +16,7 @@ SiteUrl := "http://www.reddit.com/r/LifeRPG/"
 Gui, AboutBox:Add, Picture, w32 h-1, res/WP_RPG_VG.ico
 
 Gui, AboutBox:Font, bold
-Gui, AboutBox:Add, Text, x+10, LifeRPG r2
+Gui, AboutBox:Add, Text, x+10, LifeRPG 3
 Gui, AboutBox:Font
 
 Gui, AboutBox:Add, Text, y+1, by Jayvant Javier Pujara

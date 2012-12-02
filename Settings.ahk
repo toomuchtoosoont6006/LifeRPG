@@ -19,7 +19,7 @@ AwardLevels := [5, 10, 25]
 Colors := [BGR("ADFF2F"), BGR("FFD700"), BGR("FF6347")]
 
 ;~ Priorities:
-ImportanceLevels := ["High", "Medium", "Low"]
+ImportanceLevels := ["Very High", "High", "Medium", "Low"]
 
 BGR(RGB)
 {

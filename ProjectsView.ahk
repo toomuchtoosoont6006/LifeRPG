@@ -36,14 +36,20 @@ GuiControl, , FilterSkill, % ListSkills()
 Gui, Add, Checkbox, vFilterShowDone gFilterUpdate x+10, Show do&ne
 
 
+; Sidelist:
+SideListWidth = 200
+Gui, Add, ListView,  x0 y+15 r20 AltSubmit -Multi vSideList -Hdr, ID|Diff|Parent
+
 ;~ ListView:
-Gui, Add, ListView, x0 y+15 r20 Grid AltSubmit -Multi Count%CountUp% vMainList hwndColored_LV_1, ID|DifficultyID|ImportanceID|ParentID|ColorID|Difficulty|Project|Importance|Parent
+Gui, Add, ListView, x+1 r20  AltSubmit -Multi Count%CountUp% vMainList hwndColored_LV_1, ID|DifficultyID|ImportanceID|ParentID|ColorID|Difficulty|Project|Importance|Parent
 }
 Colored_LV_1_BG = 5 ;ColorIDCol
 GuiControl, Focus, SearchQuery	; Focus on search bar by default
 Gui, Show, w827 h600, %AppTitle%	; Show the GUI we've created
 UpdateList()	; Show all projects
 Gui, +Resize +MinSize621x	; Make GUI resizable
+
+
 return
 
 ;~ ===============================================================================
@@ -53,7 +59,8 @@ GuiSize:
 if A_EventInfo = 1  ; The window has been minimized.  No action needed.
 	return
 ; Otherwise, the window has been resized or maximized. Resize the controls to match.
-GuiControl, Move, Mainlist,  % "H" . (A_GuiHeight - 55) . " W" . (A_GuiWidth)
+GuiControl, Move, Sidelist,  % "H" . (A_GuiHeight - 55) . " W" . (SideListWidth := A_GuiWidth * .35)
+GuiControl, Move, Mainlist,  % "H" . (A_GuiHeight - 55) . " W" . (A_GuiWidth - (SideListWidth + 5)) . " X" . (SideListWidth+5)
 ; Resize search bar to fit dropdown filter controls:
 if (A_GuiWidth > 811) ;827)
 {
@@ -200,6 +207,7 @@ UpdateList(NextSelection="", DifficultySelected="All", Skill="All")
 	
 	Critical
 	Gui, 1:Default
+	Gui, ListView, MainList
 	GuiControlGet, SearchString, , SearchQuery
 	GuiControl, -ReDraw, MainList
 	LV_Delete()
@@ -225,7 +233,7 @@ UpdateList(NextSelection="", DifficultySelected="All", Skill="All")
 	if (FilterShowDone = 1)
 		Filter .= "Difficulty = 0 or Difficulty is null "
 	else 
-		Filter .= "Difficulty is not null "
+		Filter .= "difficulty <> 0 "
 	
 	; Difficulty level
 	if (DifficultySelected <> "All")
@@ -330,5 +338,37 @@ UpdateList(NextSelection="", DifficultySelected="All", Skill="All")
 	; Enable ListView coloring:
 	OnMessage( WM_NOTIFY := 0x4E, "WM_NOTIFY" )
 	GuiControl, +ReDraw, MainList
+	UpdateSideList()
 	return
+}
+
+UpdateSidelist()
+{
+	global
+	ParentIDCol = 1
+	ParentDiffCol = 2
+	ParentNameCol = 3
+	Gui, 1:Default
+	Gui, ListView, SideList
+	GuiControl, -ReDraw, SideList
+	LV_Delete()
+	ParentProjectList := db.OpenRecordSet("SELECT * FROM projects WHERE id IN (SELECT parent FROM projects WHERE difficulty <> 0)")
+	while (!ParentProjectList.EOF)
+	{
+		ParentID := ParentProjectList["id"]
+		ParentDiff := ParentProjectList["difficulty"]
+		ParentName := ParentProjectList["project"]
+		
+		LV_Add("", ParentID, ParentDiff, ParentName)
+		ParentProjectList.MoveNext()
+	}
+	ParentProjectList.Close()
+	LV_ModifyCol(ParentNameCol, "sort")
+	LV_Insert(1, "", 0, 0, "All")	; To show all projects, ID shall be 0 (zero)
+	LV_ModifyCol()
+	Loop % LV_GetCount("Col")
+		LV_Modify(A_Index, "AutoHDR")
+	LV_ModifyCol(ParentIDCol, 0)
+	LV_ModifyCol(ParentDiffCol, 0)
+	GuiControl, +ReDraw, SideList
 }

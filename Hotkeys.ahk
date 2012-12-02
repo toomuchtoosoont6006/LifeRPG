@@ -58,8 +58,8 @@ If (SelectedProjectID == "ID")
 }
 else
 {	
-	StringTrimLeft, NewConfidence, A_ThisHotkey, 1
-	db.Query("UPDATE projects SET confidence = " NewConfidence " WHERE id = " SelectedProjectID )
+	StringTrimLeft, NewDifficulty, A_ThisHotkey, 1
+	db.Query("UPDATE projects SET difficulty = " NewDifficulty " WHERE id = " SelectedProjectID )
 	gosub FilterUpdate
 	;UpdateList(Selection, FilterImportanceSelected, FilterSkillSelected)
 	return

@@ -14,16 +14,15 @@ SVy := CenterY(SVh)
 ; Populate the Skill Stats ListView with skills and stats:
 ; 1. Get the skills count for all done items from the projects table
 ;    First we need to add all skills to the LV
-; SELECT DISTINCT skill FROM projects WHERE difficulty <> 'Done' ORDER BY skill
 ; 2. Add to ListView
 
-SkillsList := db.OpenRecordSet("SELECT DISTINCT skill FROM projects WHERE skill IS NOT NULL AND skill <> '' ORDER BY skill")
+SkillsList := db.OpenRecordSet("SELECT DISTINCT skill FROM skills ORDER BY skill")
 while (!SkillsList.EOF)
 {
 	SkillListName := SkillsList["skill"]
 	LV_Add("", SkillListName)
 	RowNum := A_Index
-	Table := db.Query("SELECT COUNT(skill) FROM projects WHERE skill = '" . SkillListName . "' AND confidence is null")
+	Table := db.Query("SELECT COUNT(id) FROM projects WHERE id IN (SELECT projectID FROM skills WHERE skill = '" . SkillListName . "') AND difficulty = 0")
 	columnCount := Table.Columns.Count()
 	for each, row in Table.Rows
    {

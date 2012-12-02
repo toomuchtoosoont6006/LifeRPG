@@ -2,6 +2,7 @@
 ;~ Confirm Project completion:
 
 CompleteProject:
+Gui, ListView, MainList
 Selection := LV_GetNext("","F")
 LV_GetText(SelectedProjectID, Selection, 1)
 LV_GetText(ProjectCompletionState, Selection, 2)
@@ -46,7 +47,7 @@ return
 
 CompleteProject(SelectedProjectID)
 {
-	global db, Difficulties, Awards
+	global db, DifficultyLevels, AwardLevels
 	; Get the difficulty to know how many points to award and the skill to show in notification
 	CompletedProject := db.OpenRecordSet("SELECT * FROM projects WHERE id = " SelectedProjectID)
 	while (!CompletedProject.EOF)
@@ -58,8 +59,9 @@ CompleteProject(SelectedProjectID)
 	CompletedProject.Close()
 	
 	; Mark project as done:
-	db.Query("UPDATE projects SET difficulty = 'Done', importance = '', dateDone = " . A_Now . ", levelDone = " . LevelGet() . " WHERE id = " SelectedProjectID)
+	db.Query("UPDATE projects SET difficulty = 0, importance = '', dateDone = " . A_Now . ", levelDone = " . LevelGet() . " WHERE id = " SelectedProjectID)
 	
+	/*
 	; Get the level count for the skill if the project has one:
 	if (SkillToIncrease)
 	{
@@ -71,18 +73,19 @@ CompleteProject(SelectedProjectID)
 				SkillLevel := row[A_index]
 	   }
 	}
+	*/
 	
 	; Get the amount of points to award for the chosen level
-	for Num, Difficulty in Difficulties
+	for Num, Difficulty in DifficultyLevels
 	{
-		if (DifficultyToAward = Difficulty)
-			for Key, Award in Awards
+		if (DifficultyToAward = Num)
+			for Key, Award in AwardLevels
 			{
 				if (Num = Key)
 					AwardGiven := Award
 			}
 	}
-	UpdateProgress(DifficultyToAward . " Achievement", AwardGiven)
+	UpdateProgress(DifficultyLevels[DifficultyToAward] . " Achievement", AwardGiven)
 	if (SkillToIncrease)
 		Notification("SKILL INCREASED", SkillToIncrease . " increased to " . SkillLevel)
 }

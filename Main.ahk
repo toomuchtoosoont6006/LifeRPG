@@ -30,7 +30,6 @@ SetBatchLines -1
 #Include ProjectManage.ahk
 #Include ProjectRemove.ahk
 #Include ProjectComplete.ahk
-#Include SubprojectAdd.ahk
 #Include SkillsView.ahk
 #Include ProjectLog.ahk
 #Include ProfileEdit.ahk

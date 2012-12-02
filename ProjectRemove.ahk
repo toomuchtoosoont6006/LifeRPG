@@ -2,6 +2,7 @@
 ;~ Confirm project deletion/removal:
 
 RemoveProject:
+Gui, ListView, MainList
 Selection := LV_GetNext("","F")
 LV_GetText(SelectedProjectID, Selection, IDCol)
 If (SelectedProjectID == "ID")

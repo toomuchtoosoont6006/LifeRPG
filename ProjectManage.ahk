@@ -19,6 +19,12 @@ Action := "Add"
 ProjectManage(Action)
 return
 
+; Add a new subproject:
+AddSubproject:
+Action := "Subproject"
+ProjectManage(Action)
+return
+
 ; Edit a selected project:
 EditProject:
 Action := "Edit"
@@ -116,13 +122,17 @@ if (ProjectSkillEdit = "All" || ProjectSkillEdit = "None")	; Sort this out durin
 	MsgBox, 8192, Error, "All" and "None" can't be used as skill names!
 	return
 }	
-if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd")
+if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd" || Action = "Subproject")
 {
 	Record 				:= {}
 	Record.Project 		:= ProjectNameEdit
 	Record.Difficulty 	:= KeyGet(DifficultyLevels, ProjectDifficultyEdit)
 	Record.Importance 	:= KeyGet(ImportanceLevels, ProjectImportanceEdit)
 	Record.dateEntered	:= A_Now
+	if (Action = "Subproject")
+	{
+		Record.Parent		:= SelectedProjectID
+	}
 	db.Insert(Record, "projects")
 	
 	
@@ -174,7 +184,6 @@ else if (Action = "QuickAdd" || Action = "QuickDone")
 }
 gosub FilterUpdate
 RefreshSkillsList(FilterSkillSelected)
-return
 
 ; Fall through below to close window.
 ProjectManagerGuiEscape:
@@ -185,7 +194,7 @@ try
 	for k, v in SkillACStopKeys
 		Hotkey, %v%, Off
 }
-if (Action = "Add" || Action = "Edit")
+if (Action = "Add" || Action = "Edit" || Action = "Subproject")
 {
 	GuiChildClose("ProjectManager")
 }
@@ -228,13 +237,14 @@ DBGetVal(Query, Val)
 ProjectManage(Action)	
 {
 	global
+	Gui, ListView, MainList
 	ProjectNameEdit =
 	ProjectDifficultyEdit =
 	ProjectSkillEdit =
 	; Get the row number of the selected project from the main project ListView:
 	Selection := LV_GetNext("","F")
-	; If editing, get the ID number of that project:
-	if (Action = "Edit")
+	; If editing or adding subproject, get the ID number of that project:
+	if (Action = "Edit" || Action = "Subproject")
 	{
 		LV_GetText(SelectedProjectID, Selection, 1)	; Get project ID number from hidden column of ListView
 		; If no row is selected and edit is called, do nothing and go back:
@@ -275,9 +285,17 @@ ProjectManage(Action)
 		ProjectSkill =
 		ProjectImportance =
 	}
+	if (Action = "Subproject")
+	{
+		; Temporary, working on where (if) to include parent project name in subproject-add box):
+		ProjectName =
+		ProjectDifficulty =
+		ProjectSkill =
+		ProjectImportance =
+	}	
 	; Build the GUI window to either add or edit a project:
 	; Initiate a modal child window owned by the main window (by default):
-	if (Action = "Add" || Action = "Edit")
+	if (Action = "Add" || Action = "Edit" || Action = "Subproject")
 		GuiChildInit("ProjectManager")
 	else if (Action = "QuickDone" || Action = "QuickAdd")
 	{
@@ -322,6 +340,15 @@ ProjectManage(Action)
 		StringReplace, PMTitle, Action, add, Add
 	else
 		PMTitle := Action
-	Gui, ProjectManager:Show, w%Width% h%Height% x%xc% y%yc%, %PMTitle% Project
+	if (Action = "QuickAdd" || Action = "QuickDone")
+		Gui, ProjectManager:Show, w%Width% h%Height%, %PMTitle% Project
+	else
+		Gui, ProjectManager:Show, w%Width% h%Height% x%xc% y%yc%, %PMTitle% Project
+	; Remove the skill auto-complete tooltip if LifeRPG window loses focus:
+	SetTimer, ACWinWatch, 300
+	return
+	ACWinWatch:
+	if !WinActive("ahk_class AutoHotkeyGUI")
+		SkillACShutOff()
 	return
 }
