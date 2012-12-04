@@ -7,9 +7,9 @@ if FileExist(IconFile)
 Menu, Tray, NoStandard
 
 ;~ Project confidence levels:
-ConfidenceLevels := ["High", "Medium", "Low"]
+;ConfidenceLevels := ["High", "Medium", "Low"]
 
-; For DB conversion:
+; Difficulty level labels:
 DifficultyLevels := ["Easy", "Medium", "Hard"] 
 
 ; Award points for each difficulty:
@@ -84,5 +84,7 @@ GroupAdd, exclude, Skill Stats ahk_class AutoHotkeyGUI
 GroupAdd, exclude, About ahk_class AutoHotkeyGUI
 GroupAdd, exclude, Edit Your Profile ahk_class AutoHotkeyGUI
 GroupAdd, exclude, Project Log ahk_class AutoHotkeyGUI
+SoundTitle := "Edit LifeRPG Sounds"
+GroupAdd, exclude, % SoundTitle . " ahk_class AutoHotkeyGUI"
 SettingsTitle := "Edit LifeRPG Settings"
 GroupAdd, exclude, % SettingsTitle . " ahk_class AutoHotkeyGUI"

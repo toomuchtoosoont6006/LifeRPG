@@ -21,7 +21,8 @@ Menu, ViewMenu, Add, &Project Log...`tCtrl+L, ProjectLog
 
 ; Options:=========================================
 Menu, OptionsMenu, Add, &Profile...`tCtrl+P, ProfileEdit
-Menu, OptionsMenu, Add, &Settings...`tCtrl+S, SettingsEdit
+Menu, OptionsMenu, Add, &Sounds...`tCtrl+S, SoundEdit
+Menu, OptionsMenu, Add, S&ettings...`tCtrl+E, SettingsEdit
 
 ; Help:===========================================
 Menu, HelpMenu, Add, &Reference..., ReferenceHotkeys

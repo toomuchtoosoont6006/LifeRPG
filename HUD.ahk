@@ -16,7 +16,7 @@ Gui, HUD_Level:New
 Gui, HUD_Level:+LastFound +AlwaysOnTop -Caption +ToolWindow 
 Gui, HUD_Level:Color, %HUD_Color%
 ;Gui, HUD_Level:Add, Picture, x0 y0 w400 h70 , Res\BG.png
-Gui, HUD_Level:Font, S14 Q5 bold, Electrolize
+Gui, HUD_Level:Font, S14 Q5 Bold, Electrolize
 Gui, HUD_Level:Add, Progress, vHUD_Progress x12 y12 w425 h18 cWhite Background48B1DF
 NameSize = 260
 Gui, HUD_Level:Add, Text, vHUD_Name x12 y+1 w%NameSize% r1 c%HUD_Color2% BackgroundTrans, % ProfileGet("name")

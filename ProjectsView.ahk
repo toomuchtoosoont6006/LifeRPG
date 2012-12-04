@@ -1,6 +1,7 @@
 ;~ ===============================================================================
 ;~ Building and Displaying the Main GUI:
-Send !{F2}
+if (SettingGet("HUD", "ShowOnStartup") = 1)
+	Send !{F2}
 
 ; Improves performance for adding elements to ListView:
 CountUp := db.Query("SELECT * FROM projects")
@@ -23,9 +24,9 @@ Gui, Add, Button, gClearSearch vClearSearchButton x+1, &Clear	; Pressing Alt+C a
 
 
 ;~ Filter view by importance:
-Gui, Add, Text, x+10 vDifficultyChooseText, &Difficulty: 
-Gui, Add, DropDownList, vDifficultyChoose gFilterUpdate x+5 w60, All||	; Filtering subroutines are located in Search.ahk
-GuiControl, , DifficultyChoose, % ListDifficulty("All")
+Gui, Add, Text, x+10 vImportanceChooseText, &Importance: 
+Gui, Add, DropDownList, vImportanceChoose gFilterUpdate x+5 w60, All||	; Filtering subroutines are located in Search.ahk
+GuiControl, , ImportanceChoose, % ListImportance("All")
 
 ; Filter view by skill:
 Gui, Add, Text, x+10 vSkillChooseText, S&kill:
@@ -35,21 +36,19 @@ GuiControl, , FilterSkill, % ListSkills()
 ; Show done or not:
 Gui, Add, Checkbox, vFilterShowDone gFilterUpdate x+10, Show do&ne
 
-
 ; Sidelist:
 SideListWidth = 200
-Gui, Add, ListView,  x0 y+15 r20 AltSubmit -Multi vSideList -Hdr, ID|Diff|Parent
+Gui, Add, ListView,  x0 y+15 r20 AltSubmit -Multi vSideList -Hdr gSideListUpdate, ID|Diff|Parent
 
 ;~ ListView:
 Gui, Add, ListView, x+1 r20  AltSubmit -Multi Count%CountUp% vMainList hwndColored_LV_1, ID|DifficultyID|ImportanceID|ParentID|ColorID|Difficulty|Project|Importance|Parent
 }
 Colored_LV_1_BG = 5 ;ColorIDCol
 GuiControl, Focus, SearchQuery	; Focus on search bar by default
+
 Gui, Show, w827 h600, %AppTitle%	; Show the GUI we've created
 UpdateList()	; Show all projects
 Gui, +Resize +MinSize621x	; Make GUI resizable
-
-
 return
 
 ;~ ===============================================================================
@@ -72,8 +71,8 @@ else if (A_GuiWidth <= 811)
 }
 GuiControl, MoveDraw, SearchQuery, % "w" SearchBarWidth
 GuiControl, MoveDraw, ClearSearchButton, % "x" 50 + SearchBarWidth + 10
-GuiControl, MoveDraw, DifficultyChooseText, % "x" 50 + SearchBarWidth + 55 
-GuiControl, MoveDraw, DifficultyChoose, % "x" 50 + SearchBarWidth + 120 
+GuiControl, MoveDraw, ImportanceChooseText, % "x" 50 + SearchBarWidth + 55 
+GuiControl, MoveDraw, ImportanceChoose, % "x" 50 + SearchBarWidth + 120 
 GuiControl, MoveDraw, SkillChooseText, % "x" 50 + SearchBarWidth + 190
 GuiControl, MoveDraw, FilterSkill, % "x" 50 + SearchBarWidth + 220
 GuiControl, MoveDraw, FilterShowDone, % "x" 50 + SearchBarWidth + 350
@@ -180,7 +179,7 @@ ListImportance(SetImportance="")
 	return ImportanceFormatted
 }
 
-UpdateList(NextSelection="", DifficultySelected="All", Skill="All")
+UpdateList(NextSelection="", ImportanceSelected="All", Skill="All", ParentSelected="")
 {
 	global
 	; The ID of the project - A number from the database:
@@ -231,19 +230,23 @@ UpdateList(NextSelection="", DifficultySelected="All", Skill="All")
 	else
 		Filter .= "WHERE "
 	if (FilterShowDone = 1)
-		Filter .= "Difficulty = 0 or Difficulty is null "
+		Filter .= "(Difficulty = 0 or Difficulty is null) "
 	else 
 		Filter .= "difficulty <> 0 "
 	
-	; Difficulty level
-	if (DifficultySelected <> "All")
-		Filter .= "AND Difficulty = " . KeyGet(DifficultyLevels, DifficultySelected) . " "
+	; Importance level
+	if (ImportanceSelected <> "All")
+		Filter .= "AND importance = " . KeyGet(ImportanceLevels, ImportanceSelected) . " "
 	
 	; Search string:
 	if (SearchString <> "")
-		Filter .= "AND project LIKE '%" . SafeQuote(SearchString) "%'"
+		Filter .= "AND project LIKE '%" . SafeQuote(SearchString) "%' "
+	
+	; Parent selected:
+	if (ParentSelected <> "")
+		Filter .= "AND parent = " . ParentSelected . " "
 		
-	;Notification(DifficultySelected, Filter)
+	;Notification(ImportanceSelected, Filter)
 	
 	Projects := db.OpenRecordSet(Filter)
 	while (!Projects.EOF)
@@ -334,6 +337,8 @@ UpdateList(NextSelection="", DifficultySelected="All", Skill="All")
 	LV_ModifyCol(DiffIDCol, 0)	; Hide difficulty code col
 	LV_ModifyCol(ImpIDCol, 0)	; Hide importance code col
 	LV_ModifyCol(ParentIDCol, 0)	; Hide parent ID col
+	if (SideListGet())
+		LV_ModifyCol(ParentCol, 0)
 	
 	; Enable ListView coloring:
 	OnMessage( WM_NOTIFY := 0x4E, "WM_NOTIFY" )
@@ -345,9 +350,9 @@ UpdateList(NextSelection="", DifficultySelected="All", Skill="All")
 UpdateSidelist()
 {
 	global
-	ParentIDCol = 1
-	ParentDiffCol = 2
-	ParentNameCol = 3
+	SLParentIDCol = 1
+	SLParentDiffCol = 2
+	SLParentNameCol = 3
 	Gui, 1:Default
 	Gui, ListView, SideList
 	GuiControl, -ReDraw, SideList
@@ -363,12 +368,19 @@ UpdateSidelist()
 		ParentProjectList.MoveNext()
 	}
 	ParentProjectList.Close()
-	LV_ModifyCol(ParentNameCol, "sort")
+	;LV_ModifyCol(SLParentIDCol, "integer sortdesc")	; Choose which col to sort by
+	LV_ModifyCol(SLParentNameCol, "sort")
 	LV_Insert(1, "", 0, 0, "All")	; To show all projects, ID shall be 0 (zero)
 	LV_ModifyCol()
 	Loop % LV_GetCount("Col")
 		LV_Modify(A_Index, "AutoHDR")
-	LV_ModifyCol(ParentIDCol, 0)
-	LV_ModifyCol(ParentDiffCol, 0)
+	LV_ModifyCol(SLParentIDCol, 0)
+	LV_ModifyCol(SLParentDiffCol, 0)
 	GuiControl, +ReDraw, SideList
+	;Notification(SideListFocusedID, "SideListFocusedID")
+	if (SideListFocusedID = "" || SideListFocusedID = 0 || SideListFocusedID = "ID")
+		CurrentParentSelected = 1
+	else
+		CurrentParentSelected := SideListFocRow
+	LV_Modify(CurrentParentSelected, "Focus Select Vis")
 }

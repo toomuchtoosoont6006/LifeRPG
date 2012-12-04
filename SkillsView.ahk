@@ -22,7 +22,7 @@ while (!SkillsList.EOF)
 	SkillListName := SkillsList["skill"]
 	LV_Add("", SkillListName)
 	RowNum := A_Index
-	Table := db.Query("SELECT COUNT(id) FROM projects WHERE id IN (SELECT projectID FROM skills WHERE skill = '" . SkillListName . "') AND difficulty = 0")
+	Table := db.Query("SELECT COUNT(id) FROM projects WHERE id IN (SELECT projectID FROM skills WHERE skill = '" . SafeQuote(SkillListName) . "') AND difficulty = 0")
 	columnCount := Table.Columns.Count()
 	for each, row in Table.Rows
    {
@@ -68,6 +68,7 @@ if (FocusedControl = "SkillsListView")
 else if (A_GuiEvent = "DoubleClick" )
 	LV_GetText(SDC, A_EventInfo)
 GuiChildClose("SkillsView")
+SLResetAll()
 RefreshSkillsList(SDC)
 UpdateList(,,FilterSkillSelected)
 return

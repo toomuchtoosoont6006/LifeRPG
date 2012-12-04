@@ -33,6 +33,7 @@ SetBatchLines -1
 #Include SkillsView.ahk
 #Include ProjectLog.ahk
 #Include ProfileEdit.ahk
+#Include SoundEdit.ahk
 #Include SettingsEdit.ahk
 #Include About.ahk
 #Include Help.ahk

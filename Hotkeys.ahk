@@ -4,8 +4,15 @@
 ;~ Pressing Alt+V focuses user on the ListView:
 #If WinActive(WindowFind)
 !x::
+Gui, ListView, MainList
 GuiControl, Focus, MainList
-LV_Modify(1, "Select Focus")
+LV_Modify(1, "Focus Select Vis")
+return
+
+!z::
+Gui, ListView, SideList
+GuiControl, Focus, SideList
+LV_Modify(LV_GetNext(), "Focus Select Vis")
 return
 
 ;~ Enables Ctrl+Backspace deletion in edit fields:
@@ -18,22 +25,22 @@ return
 #If		; Clear out context sensitivity
 ; Easy tasks
 ^+1::
-UpdateProgress("Really Easy Achievement", 5, "increase.wav")
+UpdateProgress(DifficultyLevels[1] . " Achievement", AwardLevels[1], "increase.wav")
 return
 
 ; Medium difficulty
 ^+2::
-UpdateProgress("Pretty Easy Achievement", 10, "medium.wav")
+UpdateProgress(DifficultyLevels[2] . " Achievement", AwardLevels[2], "medium.wav")
 return
 
 ; Heavy lifting
 ^+3::
-UpdateProgress("Medium Achievement", 25, "hard.wav")
+UpdateProgress(DifficultyLevels[3] . " Achievement", AwardLevels[3], "hard.wav")
 return
 
 ; Completed big project
 ^+4::
-UpdateProgress("Hard Achievement", 100, "goal.wav")
+UpdateProgress("Epic Achievement", 100, "goal.wav")
 return
 
 !F2::
@@ -47,9 +54,11 @@ return
 	;~ WinActivate, %WindowFind%
 ;~ return
 
+; Quickly assign new Difficulty to project via Ctrl+Number:
 ^1::
 ^2::
 ^3::
+Gui, ListView, MainList
 Selection := LV_GetNext("","F")
 LV_GetText(SelectedProjectID, Selection, IDCol)
 If (SelectedProjectID == "ID")
@@ -62,6 +71,27 @@ else
 	db.Query("UPDATE projects SET difficulty = " NewDifficulty " WHERE id = " SelectedProjectID )
 	gosub FilterUpdate
 	;UpdateList(Selection, FilterImportanceSelected, FilterSkillSelected)
+	return
+}
+return
+
+; Quickly assign new Importance to project via Shift+Number:
++1::
++2::
++3::
++4::
+Gui, ListView, MainList
+Selection := LV_GetNext("","F")
+LV_GetText(SelectedProjectID, Selection, IDCol)
+If (SelectedProjectID == "ID")
+{
+	return
+}
+else
+{	
+	StringTrimLeft, NewImportance, A_ThisHotkey, 1
+	db.Query("UPDATE projects SET importance = " NewImportance " WHERE id = " SelectedProjectID )
+	gosub FilterUpdate
 	return
 }
 return

@@ -48,34 +48,19 @@ return
 CompleteProject(SelectedProjectID)
 {
 	global db, DifficultyLevels, AwardLevels
-	; Get the difficulty to know how many points to award and the skill to show in notification
+	; Get the difficulty to know how many points to award:
 	CompletedProject := db.OpenRecordSet("SELECT * FROM projects WHERE id = " SelectedProjectID)
 	while (!CompletedProject.EOF)
 	{
 		DifficultyToAward 	:= CompletedProject["difficulty"]
-		SkillToIncrease 		:= CompletedProject["skill"]
 		CompletedProject.MoveNext()
 	}
 	CompletedProject.Close()
 	
 	; Mark project as done:
-	db.Query("UPDATE projects SET difficulty = 0, importance = '', dateDone = " . A_Now . ", levelDone = " . LevelGet() . " WHERE id = " SelectedProjectID)
+	db.Query("UPDATE projects SET difficulty = 0, dateDone = " . A_Now . ", levelDone = " . LevelGet() . " WHERE id = " SelectedProjectID) ; removed importance = '', 
 	
-	/*
-	; Get the level count for the skill if the project has one:
-	if (SkillToIncrease)
-	{
-		Table := db.Query("SELECT COUNT(skill) FROM projects WHERE skill = '" . SkillToIncrease . "' AND difficulty = 'Done'")
-		columnCount := table.Columns.Count()
-		for each, row in table.Rows
-	   {
-			Loop, % columnCount
-				SkillLevel := row[A_index]
-	   }
-	}
-	*/
-	
-	; Get the amount of points to award for the chosen level
+	; Get the amount of points to award for the chosen level:
 	for Num, Difficulty in DifficultyLevels
 	{
 		if (DifficultyToAward = Num)
@@ -85,7 +70,23 @@ CompleteProject(SelectedProjectID)
 					AwardGiven := Award
 			}
 	}
+	
 	UpdateProgress(DifficultyLevels[DifficultyToAward] . " Achievement", AwardGiven)
-	if (SkillToIncrease)
-		Notification("SKILL INCREASED", SkillToIncrease . " increased to " . SkillLevel)
+	
+	; Show notifications for skill level increases:
+	SkillIncreaseList := db.OpenRecordSet("SELECT * FROM skills WHERE projectID = " . SelectedProjectID)
+	while (!SkillIncreaseList.EOF)
+	{
+		SkillToNotify := SkillIncreaseList["skill"]
+		Table := db.Query("SELECT COUNT(id) FROM projects WHERE id IN (SELECT projectID FROM skills WHERE skill = '" . SafeQuote(SkillToNotify) . "') AND difficulty = 0")
+		ColumnCount := Table.Columns.Count()
+		for each, row in Table.Rows
+	   {
+			Loop, % ColumnCount
+				SkillLevel := row[A_index]
+			Notification("SKILL INCREASED", SkillToNotify . " increased to " . SkillLevel)
+	   }
+		SkillIncreaseList.MoveNext()
+	}
+	SkillIncreaseList.Close()
 }

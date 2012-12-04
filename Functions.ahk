@@ -119,6 +119,14 @@ Capitalize(String)
 	return Initial . String
 }
 
+StringClip(String, Len)
+{
+	Clip := SubStr(String, 1, Len)
+	if (StrLen(String) > Len)
+		Clip .= "..."
+	return Clip
+}
+
 SafeQuote(string)		; Escape single quotes for sql update. Insert doesn't seem to need it because the DB library handles it.
 {
 	StringReplace, string, string, ','', All

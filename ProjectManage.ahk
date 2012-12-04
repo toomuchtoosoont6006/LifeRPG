@@ -15,7 +15,10 @@ return
 
 ; Add a new project:
 AddProject:
-Action := "Add"
+if (SideListGet())
+	Action := "SideAdd"
+else
+	Action := "Add"
 ProjectManage(Action)
 return
 
@@ -122,14 +125,14 @@ if (ProjectSkillEdit = "All" || ProjectSkillEdit = "None")	; Sort this out durin
 	MsgBox, 8192, Error, "All" and "None" can't be used as skill names!
 	return
 }	
-if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd" || Action = "Subproject")
+if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd" || Action = "Subproject" || Action = "SideAdd")
 {
 	Record 				:= {}
 	Record.Project 		:= ProjectNameEdit
 	Record.Difficulty 	:= KeyGet(DifficultyLevels, ProjectDifficultyEdit)
 	Record.Importance 	:= KeyGet(ImportanceLevels, ProjectImportanceEdit)
 	Record.dateEntered	:= A_Now
-	if (Action = "Subproject")
+	if (Action = "Subproject" || Action = "SideAdd")
 	{
 		Record.Parent		:= SelectedProjectID
 	}
@@ -139,15 +142,6 @@ if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd" || Action = "S
 	NewProjectID := LastProjectID()
 	SkillsIDSetting := NewProjectID
 	
-	if (Action = "QuickDone" || Action = "QuickAdd")
-	{
-		Gui, ProjectManager:Cancel
-		Gui, 1:Default
-		if (Action = "QuickDone")
-		{
-			CompleteProject(LastProjectID())
-		}
-	}
 }
 else if (Action = "Edit")
 {
@@ -181,6 +175,10 @@ else if (Action = "QuickAdd" || Action = "QuickDone")
 {
 	Gui, ProjectManager:Cancel
 	Gui, 1:Default
+	if (Action = "QuickDone")
+	{
+		CompleteProject(LastProjectID())
+	}
 }
 gosub FilterUpdate
 RefreshSkillsList(FilterSkillSelected)
@@ -194,7 +192,7 @@ try
 	for k, v in SkillACStopKeys
 		Hotkey, %v%, Off
 }
-if (Action = "Add" || Action = "Edit" || Action = "Subproject")
+if (Action = "Add" || Action = "Edit" || Action = "Subproject" || Action = "SideAdd")
 {
 	GuiChildClose("ProjectManager")
 }
@@ -237,14 +235,17 @@ DBGetVal(Query, Val)
 ProjectManage(Action)	
 {
 	global
-	Gui, ListView, MainList
+	if (Action = "SideAdd")
+		Gui, ListView, SideList
+	else
+		Gui, ListView, MainList
 	ProjectNameEdit =
 	ProjectDifficultyEdit =
 	ProjectSkillEdit =
 	; Get the row number of the selected project from the main project ListView:
 	Selection := LV_GetNext("","F")
 	; If editing or adding subproject, get the ID number of that project:
-	if (Action = "Edit" || Action = "Subproject")
+	if (Action = "Edit" || Action = "Subproject" || Action = "SideAdd")
 	{
 		LV_GetText(SelectedProjectID, Selection, 1)	; Get project ID number from hidden column of ListView
 		; If no row is selected and edit is called, do nothing and go back:
@@ -285,9 +286,10 @@ ProjectManage(Action)
 		ProjectSkill =
 		ProjectImportance =
 	}
-	if (Action = "Subproject")
+	if (Action = "Subproject" || Action = "SideAdd")
 	{
 		; Temporary, working on where (if) to include parent project name in subproject-add box):
+		SubProjParentName := ProjectName
 		ProjectName =
 		ProjectDifficulty =
 		ProjectSkill =
@@ -295,7 +297,7 @@ ProjectManage(Action)
 	}	
 	; Build the GUI window to either add or edit a project:
 	; Initiate a modal child window owned by the main window (by default):
-	if (Action = "Add" || Action = "Edit" || Action = "Subproject")
+	if (Action = "Add" || Action = "Edit" || Action = "Subproject" || Action = "SideAdd")
 		GuiChildInit("ProjectManager")
 	else if (Action = "QuickDone" || Action = "QuickAdd")
 	{
@@ -304,20 +306,23 @@ ProjectManage(Action)
 	}
 	
 	; Name of project:
-	Gui, ProjectManager:Add, Text, , &Project Name:
+	if (Action = "SideAdd" || Action = "Subproject")
+		Gui, ProjectManager:Add, Text, ,% StringClip(SubProjParentName, 45) . " >>"
+	else
+		Gui, ProjectManager:Add, Text, , &Project Name:
 	Gui, ProjectManager:Add, Edit, vProjectNameEdit W270 r1, %ProjectName%
 	
 	; Difficulty:
 	Gui, ProjectManager:Add, Text, Section, &Difficulty:
 	Gui, ProjectManager:Add, DropDownList, vProjectDifficultyEdit, % ListDifficulty(ProjectDifficulty)
 	
-	; Skill:
-	Gui, ProjectManager:Add, Text, ys, Set S&kills:
-	Gui, ProjectManager:Add, Edit, vProjectSkillsEdit gSkillsAutoComplete w130 r1, % ProjectSkill
-	
 	; Importance:
-	Gui, ProjectManager:Add, Text, xm, Impo&rtance:
+	Gui, ProjectManager:Add, Text, ys, Impo&rtance:
 	Gui, ProjectManager:Add, DropDownList, vProjectImportanceEdit, % ListImportance(ProjectImportance)
+	
+	; Skill:
+	Gui, ProjectManager:Add, Text, xs, S&kills:
+	Gui, ProjectManager:Add, Edit, vProjectSkillsEdit gSkillsAutoComplete w240 r1, % ProjectSkill
 	
 	; Submit button:
 	Gui, ProjectManager:Add, Button, Default gProjectManagerSubmit w80 xm y+20, &Submit
@@ -329,21 +334,24 @@ ProjectManage(Action)
 	; Calculate position for centering this child GUI window on wherever the main project list window is:
 	xc := CenterX(300)
 	yc := CenterY(200)
+	
 	; Show window:
-	StringUpper, Action, Action, T
-	if (Action = "QuickDone")
-	{
-
-		StringReplace, PMTitle, Action, done, Done
-	}
-	else if (Action = "QuickAdd")
-		StringReplace, PMTitle, Action, add, Add
+	; Select title for Project Manager window:
+	if (Action = "QuickAdd")
+		PMTitle := "QuickAdd New Project"
+	else if (Action = "QuickDone")
+		PMTitle := "QuickDone Project"
+	else if (Action = "Add")
+		PMTitle := "Add New Project"
+	else if (Action = "Edit")
+		PMTitle := "Edit Project"
+	else if (Action = "SideAdd" || Action = "Subproject")
+		PMTitle := "Add New Subproject"
+	
+	if (Action = "QuickAdd" || Action = "QuickDone")	; If calling QuickAdd/Done windows, don't set XY coordinates so that they will center everywhere:
+		Gui, ProjectManager:Show, w%Width% h%Height%, %PMTitle%
 	else
-		PMTitle := Action
-	if (Action = "QuickAdd" || Action = "QuickDone")
-		Gui, ProjectManager:Show, w%Width% h%Height%, %PMTitle% Project
-	else
-		Gui, ProjectManager:Show, w%Width% h%Height% x%xc% y%yc%, %PMTitle% Project
+		Gui, ProjectManager:Show, w%Width% h%Height% x%xc% y%yc%, %PMTitle%
 	; Remove the skill auto-complete tooltip if LifeRPG window loses focus:
 	SetTimer, ACWinWatch, 300
 	return
