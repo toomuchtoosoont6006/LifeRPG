@@ -41,7 +41,7 @@ if (!ProjectSkillsEdit)
 	return
 else
 {
-	SkillACStopKeys := ["Tab", "`,", "Enter"]
+	SkillACStopKeys := ["Tab", "Enter"]
 	for k, v in SkillACStopKeys
 	{
 		Hotkey, %v%, SkillInsertAC, On
@@ -100,7 +100,7 @@ if (SkillsEditFocus = "ProjectSkillsEdit")
 		SendRaw % A_LoopField
 		for k, v in SkillACStopKeys
 			Hotkey, %v%, Off
-		Send `,	;%A_Space%
+		Send `,%A_Space%
 		if (A_Index = 1)
 			break
 	}
@@ -112,8 +112,10 @@ return
 
 
 ProjectManagerSubmit:
+ListSelected := "MainList"	; Allows Side List to be updated as well
+Gui, ProjectManager:Default
 Gui, ProjectManager:Submit, NoHide
-SkillACShutOff()
+SkillACShutOff()	; Use +Owndialogs instead
 if (ProjectNameEdit = "")
 {
 	MsgBox, 8192, Error, Can't make a project with no name!
@@ -154,6 +156,12 @@ else if (Action = "Edit")
 	SkillsIDSetting := SelectedProjectID
 	; Update Importance level:
 	db.Query("UPDATE projects SET Importance = '" KeyGet(ImportanceLevels, ProjectImportanceEdit) "' WHERE ID = " SelectedProjectID )
+	; Update parent field:
+	LV_GetText(NewParentSelectionID, LV_GetNext(), 1)
+	if (NewParentSelectionID = 0)
+		db.Query("UPDATE projects SET parent = '' WHERE ID = " . SelectedProjectID)
+	else
+		db.Query("UPDATE projects SET parent = " . NewParentSelectionID . " WHERE ID = " . SelectedProjectID)
 }
 ; Insert skills:
 Loop, parse, ProjectSkillsEdit, CSV
@@ -205,7 +213,6 @@ return
 
 ; Functions for Project Management: =============================================================
 
-
 LastProjectID()
 {
 	global db
@@ -219,26 +226,15 @@ LastProjectID()
    return QuickID
 }
 
-DBGetVal(Query, Val)
-{
-	global db
-   R := db.OpenRecordSet(Query)
-   while (!R.EOF)
-	{
-		V := R[Val]
-		R.MoveNext()
-	}
-	R.Close()
-	return V
-}
-
 ProjectManage(Action)	
 {
 	global
 	if (Action = "SideAdd")
 		Gui, ListView, SideList
 	else
-		Gui, ListView, MainList
+	{
+		Gui, ListView, %ListSelected%
+	}
 	ProjectNameEdit =
 	ProjectDifficultyEdit =
 	ProjectSkillEdit =
@@ -249,7 +245,7 @@ ProjectManage(Action)
 	{
 		LV_GetText(SelectedProjectID, Selection, 1)	; Get project ID number from hidden column of ListView
 		; If no row is selected and edit is called, do nothing and go back:
-		If (SelectedProjectID == "ID")
+		If (SelectedProjectID == "ID" || !SelectedProjectID)
 		{
 			return
 		}
@@ -261,6 +257,7 @@ ProjectManage(Action)
 				ProjectName 			:= ProjectInfo["project"]
 				ProjectDifficulty		:= ProjectInfo["Difficulty"]
 				ProjectImportance		:= ProjectInfo["importance"]
+				ParentOptCurrID		:= ProjectInfo["parent"]
 				ProjectInfo.MoveNext()
 			}
 			ProjectInfo.Close()
@@ -305,6 +302,16 @@ ProjectManage(Action)
 		Gui, ProjectManager:Default
 	}
 	
+	; GUI elements/controls: ==========================================================================
+	
+	; Set size of this window:
+	Width = 300
+	Height = 200
+	
+	; Tab options:
+	Gui, ProjectManager:Add, Tab2, x0 y0 w300 h200 -Wrap, Project|Parent|Scheduling|Rewards|Misc.
+	
+	; Project Tab: ============================================
 	; Name of project:
 	if (Action = "SideAdd" || Action = "Subproject")
 		Gui, ProjectManager:Add, Text, ,% StringClip(SubProjParentName, 45) . " >>"
@@ -321,19 +328,67 @@ ProjectManage(Action)
 	Gui, ProjectManager:Add, DropDownList, vProjectImportanceEdit, % ListImportance(ProjectImportance)
 	
 	; Skill:
-	Gui, ProjectManager:Add, Text, xs, S&kills:
+	Gui, ProjectManager:Add, Text, xs, S&kills (separate with a comma):
 	Gui, ProjectManager:Add, Edit, vProjectSkillsEdit gSkillsAutoComplete w240 r1, % ProjectSkill
 	
 	; Submit button:
-	Gui, ProjectManager:Add, Button, Default gProjectManagerSubmit w80 xm y+20, &Submit
+	Gui, Tab
+	Gui, ProjectManager:Add, Button, Default gProjectManagerSubmit w80 xm y+10, &Submit
 	
-	; Set size of this window:
-	Width = 300
-	Height = 200
+	; Parent Tab: ============================================
+	Gui, Tab, 2
+	; Search box:
+	Gui, ProjectManager:Add, Text, , Search:
+	Gui, ProjectManager:Add, Edit, % "x+1 gParentChangeSearch vParentChangeEdit r1 w" Width - 80,
+	; ListView:
+	if (ParentOptCurrID) 
+		ParentListH = 5
+	else
+		ParentListH = 6
+	Gui, ProjectManager:Add, ListView, % "y+3 xm vParentChangeList -Multi -Hdr r" ParentListH " w" Width - 20, ID|Project
+	; Fill in ListView:
+	ParentOptions := db.OpenRecordSet("SELECT * FROM projects WHERE difficulty <> 0 AND id <> " . SelectedProjectID)
+	Gui, ProjectManager:Default
+	while (!ParentOptions.EOF)
+	{
+		ParentOptID := ParentOptions["id"]
+		ParentOptName := ParentOptions["project"]
+		LV_Add("",ParentOptID, ParentOptName)
+		ParentOptions.MoveNext()
+	}
+	ParentOptions.Close()
+	
+	; Sort possible parent projects alphabetically:
+	LV_ModifyCol(2, "Sort AutoHdr")
+	
+	; Insert "None" option at the top:
+	LV_Insert(1,"","0","None")
+	
+	; Hide ID col:
+	LV_ModifyCol(1, 0)
+	
+	; Highlight current parent:
+	if (ParentOptCurrID)
+	{
+		Loop % LV_GetCount()
+		{
+			POSelRow := A_Index
+			LV_GetText(ParentOptMatch, POSelRow, 1)
+			if (ParentOptMatch = ParentOptCurrID)
+			{
+				LV_Modify(POSelRow, "Focus Select")
+				LV_Modify(POSelRow+4, "Vis")
+			}
+		}
+		; Display current parent project:
+		Gui, ProjectManager:Add, Text, , % StringClip(DBGetVal("SELECT project FROM projects WHERE id = " . ParentOptCurrID, "project"), 50)
+	}
+	else
+		LV_Modify(1, "Focus Select Vis")
 	
 	; Calculate position for centering this child GUI window on wherever the main project list window is:
-	xc := CenterX(300)
-	yc := CenterY(200)
+	xc := CenterX(Width)
+	yc := CenterY(Height)
 	
 	; Show window:
 	; Select title for Project Manager window:
@@ -356,7 +411,36 @@ ProjectManage(Action)
 	SetTimer, ACWinWatch, 300
 	return
 	ACWinWatch:
-	if !WinActive("ahk_class AutoHotkeyGUI")
+	GuiControlGet, SkillEditWatch, ProjectManager:FocusV
+	if (!WinActive("ahk_class AutoHotkeyGUI") || SkillEditWatch <> "ProjectSkillsEdit")
 		SkillACShutOff()
 	return
 }
+
+ParentChangeSearch:
+Critical
+Gui, ProjectManager:Default
+; Update project list to show possible parents
+LV_Delete()
+GuiControlGet, ParentSearchQuery, , ParentChangeEdit
+ParentOptions := db.OpenRecordSet("SELECT * FROM projects WHERE difficulty <> 0 AND id <> " . SelectedProjectID . " AND project LIKE '%" . SafeQuote(ParentSearchQuery) . "%'")
+GuiControl, -ReDraw, ParentChangeList
+while (!ParentOptions.EOF)
+{
+	ParentOptID := ParentOptions["id"]
+	ParentOptName := ParentOptions["project"]
+	LV_Add("",ParentOptID, ParentOptName)
+	ParentOptions.MoveNext()
+}
+ParentOptions.Close()
+
+; Sort possible parent projects alphabetically:
+LV_ModifyCol(2, "Sort AutoHdr")
+
+; Insert "None" option at the top:
+LV_Insert(1,"","0","None")
+
+; Hide ID col:
+LV_ModifyCol(1, 0)
+GuiControl, +ReDraw, ParentChangeList
+return

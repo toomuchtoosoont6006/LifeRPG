@@ -52,33 +52,28 @@ return
 
 ;===================================================================================
 SideListUpdate:
-if (A_GuiEvent = "K" && (A_EventInfo = 33 || A_EventInfo = 34 || A_EventInfo = 35 || A_EventInfo = 36 || A_EventInfo = 38 || A_EventInfo = 40)) OR (A_GuiEvent = "Normal")
+Critical
+if ((A_GuiEvent = "K" && (A_EventInfo = 33 || A_EventInfo = 34 || A_EventInfo = 35 || A_EventInfo = 36 || A_EventInfo = 38 || A_EventInfo = 40)) OR (A_GuiEvent = "Normal") || A_GuiEvent = "RightClick")
 {
-	GuiControl, Choose, ImportanceChoose, 1
-	RefreshSkillsList()
-	gosub FilterUpdate
+	GuiControl, , SearchQuery	; Blank search box. By changing control, gLabel appears to trigger
+	GuiControl, Choose, ImportanceChoose, 1	; Reset importance selector
+	RefreshSkillsList()	; Reset skill selector
+	GuiControlGet, ListSelected, 1:FocusV
+	GuiControl, Disable, ButtonSubproject
 }
 else
 	return
 return
 
-SideListGet()
+MainListSelect:
+if (A_GuiEvent = "K" && (A_EventInfo = 33 || A_EventInfo = 34 || A_EventInfo = 35 || A_EventInfo = 36 || A_EventInfo = 38 || A_EventInfo = 40)) OR (A_GuiEvent = "Normal")
 {
-	global
-	Gui, ListView, SideList
-	SideListFocRow := LV_GetNext()
-	LV_GetText(SideListFocusedID, LV_GetNext(), SLParentIDCol)
-	Gui, ListView, MainList
-	if (SideListFocusedID = "ID" || SideListFocusedID = 0)
-		return
-	else
-		return SideListFocusedID
+	;Notification("MainList Selected")
+	GuiControlGet, ListSelected, 1:FocusV
+	GuiControl, Enable, ButtonSubproject
+	Gui, ListView, % ListSelected
+	LV_GetText(SBParent, LV_GetNext(), ParentCol)
+	if (SBParent <> "Parent")
+		SB_SetText(SBParent)
 }
-
-; Move selector back to "All" (first row):
-SLResetAll()
-{
-	global
-	Gui, ListView, SideList
-	LV_Modify(1, "Focus Select Vis")
-}
+return

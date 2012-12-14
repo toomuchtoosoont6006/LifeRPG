@@ -18,6 +18,7 @@ Menu, FileMenu, Add, E&xit, GuiClose
 ; View:===========================================
 Menu, ViewMenu, Add, &Skill Stats...`tCtrl+K, SkillsView
 Menu, ViewMenu, Add, &Project Log...`tCtrl+L, ProjectLog
+Menu, ViewMenu, Add, &Finances...`tCtrl+F, MenuHandler
 
 ; Options:=========================================
 Menu, OptionsMenu, Add, &Profile...`tCtrl+P, ProfileEdit

@@ -12,7 +12,7 @@ WinVis = true
 Gui, 1:Default
 Gui, Add, Button, y3 x15 gAddProject, &Add Project		; Press Alt+A to add project
 Gui, Add, Button, y3 x+1 gEditProject, &Edit Project	; Edit project (Alt+E, and so on)
-Gui, Add, Button, y3 x+1 gAddSubproject, Su&bproject		; Create subproject for selected task
+Gui, Add, Button, y3 x+1 gAddSubproject vButtonSubproject, Su&bproject		; Create subproject for selected task
 Gui, Add, Button, y3 x+1 gCompleteProject, Project &Done	; Confirm project is done
 Gui, Add, Button, y3 x+1 gRemoveProject, &Remove Project	; Confirm project deletion
 
@@ -40,15 +40,20 @@ Gui, Add, Checkbox, vFilterShowDone gFilterUpdate x+10, Show do&ne
 SideListWidth = 200
 Gui, Add, ListView,  x0 y+15 r20 AltSubmit -Multi vSideList -Hdr gSideListUpdate, ID|Diff|Parent
 
-;~ ListView:
-Gui, Add, ListView, x+1 r20  AltSubmit -Multi Count%CountUp% vMainList hwndColored_LV_1, ID|DifficultyID|ImportanceID|ParentID|ColorID|Difficulty|Project|Importance|Parent
+;~ Main ListView:
+Gui, Add, ListView, x+1 r20  AltSubmit -Multi Count%CountUp% vMainList hwndColored_LV_1 gMainListSelect, ID|DifficultyID|ImportanceID|ParentID|ColorID|Difficulty|Project|Importance|Parent
 }
+
+; Status bar:
+Gui, Add, StatusBar, ,
+
 Colored_LV_1_BG = 5 ;ColorIDCol
 GuiControl, Focus, SearchQuery	; Focus on search bar by default
 
 Gui, Show, w827 h600, %AppTitle%	; Show the GUI we've created
 UpdateList()	; Show all projects
 Gui, +Resize +MinSize621x	; Make GUI resizable
+
 return
 
 ;~ ===============================================================================
@@ -58,8 +63,9 @@ GuiSize:
 if A_EventInfo = 1  ; The window has been minimized.  No action needed.
 	return
 ; Otherwise, the window has been resized or maximized. Resize the controls to match.
-GuiControl, Move, Sidelist,  % "H" . (A_GuiHeight - 55) . " W" . (SideListWidth := A_GuiWidth * .35)
-GuiControl, Move, Mainlist,  % "H" . (A_GuiHeight - 55) . " W" . (A_GuiWidth - (SideListWidth + 5)) . " X" . (SideListWidth+5)
+SBar = 78
+GuiControl, Move, Sidelist,  % "H" . (A_GuiHeight - SBar) . " W" . (SideListWidth := A_GuiWidth * .35)
+GuiControl, Move, Mainlist,  % "H" . (A_GuiHeight - SBar) . " W" . (A_GuiWidth - (SideListWidth + 5)) . " X" . (SideListWidth+5)
 ; Resize search bar to fit dropdown filter controls:
 if (A_GuiWidth > 811) ;827)
 {
@@ -83,7 +89,47 @@ return
 GuiClose:
 ExitApp
 
-
+; ================================================================================
+;~ Right-click context menu actions:
+GuiContextMenu:
+Critical off
+if ((A_GuiControl = "SideList" && A_EventInfo <> 1) || A_GuiControl = "MainList")
+{
+	Gui, ListView, %A_GuiControl%
+	try
+	{
+		Menu, RightClick, DeleteAll
+	}
+	; Right-click/context items:
+	if (A_GuiControl = "SideList")
+	{
+		LV_GetText(SLContextProjName, LV_GetNext(), SLParentNameCol)
+		SLContextProjName := StringClip(SLContextProjName, 50)
+		Menu, RightClick, Add, % SLContextProjName, MenuHandler
+		Menu, RightClick, Disable, % SLContextProjName
+		Menu, RightClick, Default, % SLContextProjName
+		Menu, RightClick, Add, &Add Project..., MenuHandler 
+	}
+	if (A_GuiControl = "MainList")
+	{
+		LV_GetText(MLContextProjName, LV_GetNext(), ProjNameCol)
+		MLContextProjName := StringClip(MLContextProjName, 50)
+		; Grayed-out project name:
+		Menu, RightClick, Add, % MLContextProjName, MenuHandler
+		Menu, RightClick, Disable, % MLContextProjName
+		Menu, RightClick, Default, % MLContextProjName 
+		; Add subproject option:
+		Menu, RightClick, Add, &Add Subproject..., AddSubproject
+	}
+	Menu, RightClick, Add, 
+	Menu, RightClick, Add, &Edit Project..., EditProject
+	Menu, RightClick, Add, 
+	Menu, RightClick, Add, Project &Done, CompleteProject
+	Menu, RightClick, Add, &Remove Project, RemoveProject
+	Menu, RightClick, Show, %A_GuiX%, %A_GuiY%
+}
+;Notification(A_EventInfo)
+return
 
 ;Main ListView-related Functions==================================================
 ; Call to refresh skills list after adding a new skill:
@@ -262,6 +308,7 @@ UpdateList(NextSelection="", ImportanceSelected="All", Skill="All", ParentSelect
 	Projects.Close()
 	GuiControl, -ReDraw, MainList
 	LV_ModifyCol(IDCol, "Integer sortdesc")	; Enable this to sort by ID, which could show most recent or oldest first, depending.
+	LV_ModifyCol(ImpIDCol, "sort")
 	LV_ModifyCol(DiffIDCol, "sort")
 	
 	If (NextSelection)
@@ -337,7 +384,7 @@ UpdateList(NextSelection="", ImportanceSelected="All", Skill="All", ParentSelect
 	LV_ModifyCol(DiffIDCol, 0)	; Hide difficulty code col
 	LV_ModifyCol(ImpIDCol, 0)	; Hide importance code col
 	LV_ModifyCol(ParentIDCol, 0)	; Hide parent ID col
-	if (SideListGet())
+	if (SideListGet())	; Call SideListGet again to check whether to hide parent col in main list.
 		LV_ModifyCol(ParentCol, 0)
 	
 	; Enable ListView coloring:
@@ -350,6 +397,8 @@ UpdateList(NextSelection="", ImportanceSelected="All", Skill="All", ParentSelect
 UpdateSidelist()
 {
 	global
+	if (ListSelected = "SideList")
+		return
 	SLParentIDCol = 1
 	SLParentDiffCol = 2
 	SLParentNameCol = 3
@@ -377,10 +426,32 @@ UpdateSidelist()
 	LV_ModifyCol(SLParentIDCol, 0)
 	LV_ModifyCol(SLParentDiffCol, 0)
 	GuiControl, +ReDraw, SideList
-	;Notification(SideListFocusedID, "SideListFocusedID")
 	if (SideListFocusedID = "" || SideListFocusedID = 0 || SideListFocusedID = "ID")
 		CurrentParentSelected = 1
 	else
 		CurrentParentSelected := SideListFocRow
 	LV_Modify(CurrentParentSelected, "Focus Select Vis")
+}
+
+SideListGet()
+{
+	global
+	Gui, 1:Default
+	Gui, ListView, SideList
+	SideListFocRow := LV_GetNext()
+	LV_GetText(SideListFocusedID, LV_GetNext(), SLParentIDCol)
+	Gui, ListView, MainList
+	;Notification(SideListFocusedID, ListSelected)
+	if (SideListFocusedID = "ID" || SideListFocusedID = 0)
+		return
+	else
+		return SideListFocusedID
+}
+
+; Move side list selector back to "All" (first row):
+SLResetAll()
+{
+	global
+	Gui, ListView, SideList
+	LV_Modify(1, "Focus Select Vis")
 }

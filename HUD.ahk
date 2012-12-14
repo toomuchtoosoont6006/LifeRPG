@@ -4,6 +4,7 @@
 HUD_Color = 15384E
 HUD_Trans = 200
 HUD_Color2 = 48B1DF
+HUD_Font = Electrolize
 
 ; Create a new independent Guis for the HUD
 
@@ -24,7 +25,7 @@ Gui, HUD_Level:Font, s10
 PointsSize := 424 - NameSize
 Gui, HUD_Level:Add, Text, vHUD_Points x+1 w%PointsSize% Right cWhite BackgroundTrans,
 Gui, HUD_Level:Font, s14
-Gui, HUD_Level:Add, Text, vHUD_Text x12 y+7 w425 cWhite BackgroundTrans		; Shows current level and temporarily shows new XP awards.
+Gui, HUD_Level:Add, Text, vHUD_Text x12 y+7 w425 cWhite BackgroundTrans r1		; Shows current level and temporarily shows new XP awards.
 HUD_LevelText := "LEVEL "
 HUD_LevelTitle :=
 ;Gui, HUD_Level:Color, 15384E
@@ -46,6 +47,17 @@ WinSet, Transparent, %HUD_Trans%
 Winset, ExStyle, +0x20
 Gui, HUD_Momentum:Show, x80 y135 w450 h30 NoActivate
 Gui, HUD_Momentum:Hide
+
+; Money/Finances Module:
+Gui, HUD_Finances:New
+Gui, HUD_Finances:+LastFound +AlwaysOnTop -Caption +ToolWindow
+Gui, HUD_Finances:Color, %HUD_Color%
+Gui, HUD_Finances:Font, S14 Q5 bold, %HUD_Font%
+Gui, HUD_Finances:Add, Text, x9 y4 cWhite BackgroundTrans, $2405
+WinSet, Transparent, %HUD_Trans%
+WinSet, ExStyle, +0x20
+Gui, HUD_Finances:Show, % "x80 y" (A_ScreenHeight - 80) " h30"
+;Gui, HUD_Finances:Hide
 
 HUD_Refresh()
 {

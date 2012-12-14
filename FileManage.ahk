@@ -98,6 +98,7 @@ FileOpenGUI_Refresh()
 	global
 	if (OldDB)
 	{
+		ListSelected := "MainList"
 		gosub ClearSearch
 		MomentumLastUpdate := ProfileGet("MMTLastUpdate")
 		HUD_Refresh()

@@ -79,6 +79,19 @@ WM_NOTIFY( wparam, lparam, msg, hwnd ) {
    Return, Code = HDN_BEGINTRACKA || Code = HDN_BEGINTRACKW ? True : ""
 }
 
+DBGetVal(Query, Val)
+{
+	global db
+   R := db.OpenRecordSet(Query)
+   while (!R.EOF)
+	{
+		V := R[Val]
+		R.MoveNext()
+	}
+	R.Close()
+	return V
+}
+
 ProfileSet(setting, value)
 {
 	global db

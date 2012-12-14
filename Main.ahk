@@ -38,6 +38,7 @@ SetBatchLines -1
 #Include About.ahk
 #Include Help.ahk
 #Include FileManage.ahk
+#Include Finances.ahk
 
 MenuHandler:
 return

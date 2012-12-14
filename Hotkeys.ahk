@@ -22,7 +22,7 @@ send, ^+{left}{delete}
 return
 
 ;~ Give yourself points manually:
-#If		; Clear out context sensitivity
+#If		; Clear out context sensitivity so it works everywhere
 ; Easy tasks
 ^+1::
 UpdateProgress(DifficultyLevels[1] . " Achievement", AwardLevels[1], "increase.wav")
@@ -43,17 +43,13 @@ return
 UpdateProgress("Epic Achievement", 100, "goal.wav")
 return
 
+; Toggle HUD:
 !F2::
 HUD_Progress()
 return
 
-;~ !F1::
-;~ if (WinActive(WindowFind))
-	;~ WinMinimize, %WindowFind%
-;~ else 
-	;~ WinActivate, %WindowFind%
-;~ return
 
+#If WinActive(WindowFind)
 ; Quickly assign new Difficulty to project via Ctrl+Number:
 ^1::
 ^2::
@@ -95,3 +91,4 @@ else
 	return
 }
 return
+#If
