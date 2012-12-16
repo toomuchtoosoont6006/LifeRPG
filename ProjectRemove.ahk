@@ -2,6 +2,7 @@
 ;~ Confirm project deletion/removal:
 
 RemoveProject:
+Gui +OwnDialogs
 Gui, ListView, MainList
 Selection := LV_GetNext("","F")
 LV_GetText(SelectedProjectID, Selection, IDCol)
@@ -29,5 +30,19 @@ else
 	RemoveProjectGuiEscape:
 	GuiChildClose("RemoveProject")
 	return
+	
+	/*
+	MsgBox, 36, Remove Project, Remove this project?
+	IfMsgBox Yes
+	{
+		db.Query("DELETE FROM projects WHERE id = " . SelectedProjectID )
+		db.Query("DELETE FROM skills WHERE projectID = " . SelectedProjectID)
+		RefreshSkillsList(FilterSkillSelected)
+		gosub FilterUpdate
+		return
+	}
+	else
+		return
+	*/
 }
 return

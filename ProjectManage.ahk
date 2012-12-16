@@ -112,6 +112,7 @@ return
 
 
 ProjectManagerSubmit:
+;Notification(Action, "Action")
 ListSelected := "MainList"	; Allows Side List to be updated as well
 Gui, ProjectManager:Default
 Gui, ProjectManager:Submit, NoHide
@@ -137,6 +138,13 @@ if (Action = "Add" || Action = "QuickDone" || Action = "QuickAdd" || Action = "S
 	if (Action = "Subproject" || Action = "SideAdd")
 	{
 		Record.Parent		:= SelectedProjectID
+	}
+	else
+	{
+		LV_GetText(NewParentSelectionID, LV_GetNext(), 1)
+		;Notification(NewParentSelectionID, "NewParentSelectionID")
+		if (NewParentSelectionID <> 0)
+			Record.Parent		:= NewParentSelectionID
 	}
 	db.Insert(Record, "projects")
 	
@@ -282,6 +290,11 @@ ProjectManage(Action)
 		ProjectDifficulty =
 		ProjectSkill =
 		ProjectImportance =
+		if (ListSelected = "SideList")
+			LV_GetText(SelectedProjectID, Selection, 1)	; Get project ID number from hidden column of "side" ListView, cause we be adding a new stand-alone project
+		ParentOptCurrID =
+		if (Action = "QuickAdd" || Action = "QuickDone")
+			SelectedProjectID = 0
 	}
 	if (Action = "Subproject" || Action = "SideAdd")
 	{
@@ -346,14 +359,20 @@ ProjectManage(Action)
 	else
 		ParentListH = 6
 	Gui, ProjectManager:Add, ListView, % "y+3 xm vParentChangeList -Multi -Hdr r" ParentListH " w" Width - 20, ID|Project
+	
 	; Fill in ListView:
-	ParentOptions := db.OpenRecordSet("SELECT * FROM projects WHERE difficulty <> 0 AND id <> " . SelectedProjectID)
+	if (!SelectedProjectID || SelectedProjectID = 0)
+		ParentExcludeFilter := ""
+	else
+		ParentExcludeFilter := " AND id <> " . SelectedProjectID
+	;Notification(SelectedProjectID, "SelectedProjectID")
+	ParentOptions := db.OpenRecordSet("SELECT * FROM projects WHERE difficulty <> 0 " . ParentExcludeFilter)
 	Gui, ProjectManager:Default
 	while (!ParentOptions.EOF)
 	{
 		ParentOptID := ParentOptions["id"]
 		ParentOptName := ParentOptions["project"]
-		LV_Add("",ParentOptID, ParentOptName)
+		LV_Add("",ParentOptID, ParentOptName)	; Add projects to parents list
 		ParentOptions.MoveNext()
 	}
 	ParentOptions.Close()
@@ -423,7 +442,7 @@ Gui, ProjectManager:Default
 ; Update project list to show possible parents
 LV_Delete()
 GuiControlGet, ParentSearchQuery, , ParentChangeEdit
-ParentOptions := db.OpenRecordSet("SELECT * FROM projects WHERE difficulty <> 0 AND id <> " . SelectedProjectID . " AND project LIKE '%" . SafeQuote(ParentSearchQuery) . "%'")
+ParentOptions := db.OpenRecordSet("SELECT * FROM projects WHERE difficulty <> 0 " . ParentExcludeFilter . " AND project LIKE '%" . SafeQuote(ParentSearchQuery) . "%'")
 GuiControl, -ReDraw, ParentChangeList
 while (!ParentOptions.EOF)
 {

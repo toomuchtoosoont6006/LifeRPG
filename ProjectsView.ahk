@@ -8,8 +8,13 @@ CountUp := db.Query("SELECT * FROM projects")
 CountUp := CountUp.Rows.Count()	
 
 WinVis = true
-; Buttons for Main Gui Window:
+
 Gui, 1:Default
+; Hidden button for opening side list items from main list
+Gui, Add, Button, x0 y0 w0 h0 gMainListSelect vMainListSelector Hidden Default,
+
+; Buttons for Main Gui Window:
+
 Gui, Add, Button, y3 x15 gAddProject, &Add Project		; Press Alt+A to add project
 Gui, Add, Button, y3 x+1 gEditProject, &Edit Project	; Edit project (Alt+E, and so on)
 Gui, Add, Button, y3 x+1 gAddSubproject vButtonSubproject, Su&bproject		; Create subproject for selected task
@@ -289,7 +294,7 @@ UpdateList(NextSelection="", ImportanceSelected="All", Skill="All", ParentSelect
 		Filter .= "AND project LIKE '%" . SafeQuote(SearchString) "%' "
 	
 	; Parent selected:
-	if (ParentSelected <> "")
+	if (ParentSelected <> "" && ParentSelected <> 0)
 		Filter .= "AND parent = " . ParentSelected . " "
 		
 	;Notification(ImportanceSelected, Filter)
@@ -315,21 +320,9 @@ UpdateList(NextSelection="", ImportanceSelected="All", Skill="All", ParentSelect
 		LV_Modify(NextSelection, "Focus Select Vis")
 	
 	; Display language from database codes and set colors:
-	Times := LV_GetCount()
-	Loop % Times
+	Loop % LV_GetCount()
 	{
 		ThisLine := A_Index
-		
-		; Display parent projects names:
-		LV_GetText(ParentID, ThisLine, ParentCol)
-		GetParent := db.OpenRecordSet("SELECT project FROM projects WHERE id = " ParentID)
-		while (!GetParent.EOF)
-		{
-			ParentName := GetParent["project"]
-			GetParent.MoveNext()
-		}
-		GetParent.Close()
-		LV_Modify(ThisLine, "Col" . ParentCol,ParentName)
 		
 		; Display Difficulty level names and set color codes:
 		for k, v in DifficultyLevels
@@ -372,9 +365,30 @@ UpdateList(NextSelection="", ImportanceSelected="All", Skill="All", ParentSelect
 		GetParent.Close()
 		LV_Modify(ThisLine, "Col" . ParentCol, ParentName)
 		
+		; Display arrows next to projects that have subprojects:
+		; Get ID of project:
+		LV_GetText(SubprojCheckIDCount, ThisLine, IDCol)
+		; Check to see if it has undone children
+		SubprojCount := db.OpenRecordSet("SELECT count(project) FROM projects WHERE parent = " . SubprojCheckIDCount " AND difficulty <> 0")
+		while (!SubprojCount.EOF)
+		{
+			ArrowDisplay := SubprojCount["count(project)"]
+			SubprojCount.MoveNext()
+		}
+		SubprojCount.Close()
+		; if it does, alter the text in the project column to have two >> next to the project to denote this:
+		if (ArrowDisplay > 0)
+		{
+			; Get the text of the project
+			LV_GetText(ProjNameMod, ThisLine, ProjNameCol)
+			; Add the mark to it; modify the column text
+			LV_Modify(ThisLine, "Col" . ProjNameCol, ProjNameMod . " >>")
+		}
+		
+		
 	}
 	
-	; Resize columns here. Hide anything unfriendly/coded:
+	; Resize columns here. Hide anything unfriendly/encoded:
 	LV_ModifyCol()
 	MainColCount := LV_GetCount("Col")
 	Loop % MainColCount
@@ -441,8 +455,8 @@ SideListGet()
 	SideListFocRow := LV_GetNext()
 	LV_GetText(SideListFocusedID, LV_GetNext(), SLParentIDCol)
 	Gui, ListView, MainList
-	;Notification(SideListFocusedID, ListSelected)
-	if (SideListFocusedID = "ID" || SideListFocusedID = 0)
+	;Notification(SideListFocusedID, "SideListFocusedID")
+	if (SideListFocusedID = "ID")
 		return
 	else
 		return SideListFocusedID

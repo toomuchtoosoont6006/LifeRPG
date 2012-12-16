@@ -51,9 +51,9 @@ return
 
 #If WinActive(WindowFind)
 ; Quickly assign new Difficulty to project via Ctrl+Number:
-^1::
-^2::
-^3::
+!1::
+!2::
+!3::
 Gui, ListView, MainList
 Selection := LV_GetNext("","F")
 LV_GetText(SelectedProjectID, Selection, IDCol)
@@ -72,10 +72,10 @@ else
 return
 
 ; Quickly assign new Importance to project via Shift+Number:
-+1::
-+2::
-+3::
-+4::
+^1::
+^2::
+^3::
+^4::
 Gui, ListView, MainList
 Selection := LV_GetNext("","F")
 LV_GetText(SelectedProjectID, Selection, IDCol)
